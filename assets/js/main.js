@@ -934,9 +934,10 @@ function initHeaderScroll() {
             });
     }
 
-    const LIQUID_SESSION_KEY = 'qualquer-tecla_liquid_static';
+    /* v2: invalida sessões antigas marcadas com three-load-failed do CDN cdnjs. */
+    const LIQUID_SESSION_KEY = 'qualquer-tecla_liquid_static_v2';
     const LIQUID_SCRIPT_TIMEOUT_MS = 8000;
-    const LIQUID_ASSET_VERSION = '20260912liquidPreload1';
+    const LIQUID_ASSET_VERSION = '20261003liquidJsdelivr1';
     const LIQUID_DEBUG = false;
     const LIQUID_SESSION_REASONS = new Set([
         'three-load-failed',
@@ -1124,7 +1125,9 @@ function initHeaderScroll() {
         window.LiquidDistortion.boot(container, activateMassiveBrandStatic);
     }
 
-    const THREE_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+    /* Mesmo host já usado pelo keycap-3d e permitido em script-src/connect-src.
+     * cdnjs falha em vários clientes (onerror) e gravava fallback estático na sessão. */
+    const THREE_CDN = 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js';
 
     function loadLiquidScripts(container) {
         if (!container || window.__liquidLoadStarted) return;
