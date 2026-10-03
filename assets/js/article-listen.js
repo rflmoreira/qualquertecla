@@ -287,6 +287,8 @@
             });
             audio.addEventListener('playing', () => {
                 requestBufferingHide();
+                // Handoff ad→faixa: só para o ad quando a próxima faixa confirma playing.
+                stopAdAudio();
             });
             audio.addEventListener('waiting', () => {
                 requestBufferingShow();
@@ -312,6 +314,8 @@
             audio.addEventListener('loadedmetadata', emitProgress);
             audio.addEventListener('durationchange', emitProgress);
             audio.addEventListener('error', () => {
+                // Durante swap, não destruir o elemento — a recuperação de play trata o caso.
+                if (isSwappingAudio) return;
                 cleanup();
             });
             return audio;
@@ -383,28 +387,7 @@
                         requestBufferingShow();
                     }
 
-                    const playPromise = audio.play();
-                    if (playPromise !== undefined && typeof playPromise.finally === 'function') {
-                        playPromise.catch(() => {
-                            // AbortError é esperado em skips rápidos
-                        }).finally(() => {
-                            // Lock permanece até drenar pending; evita liberar antes do próximo processSwap.
-                            if (!audio) {
-                                isSwappingAudio = false;
-                                pendingSwapUrl = null;
-                                return;
-                            }
-                            if (pendingSwapUrl && pendingSwapUrl !== currentUrl) {
-                                const nextUrl = pendingSwapUrl;
-                                pendingSwapUrl = null;
-                                processSwap(nextUrl);
-                                return;
-                            }
-                            pendingSwapUrl = null;
-                            isSwappingAudio = false;
-                            syncPlaybackState();
-                        });
-                    } else {
+                    const finishSwapLock = () => {
                         if (!audio) {
                             isSwappingAudio = false;
                             pendingSwapUrl = null;
@@ -419,7 +402,75 @@
                         pendingSwapUrl = null;
                         isSwappingAudio = false;
                         syncPlaybackState();
-                    }
+                    };
+
+                    const armResumeOnVisible = () => {
+                        const resumeOnVisible = () => {
+                            if (document.visibilityState !== 'visible') return;
+                            document.removeEventListener('visibilitychange', resumeOnVisible);
+                            if (!audio || !audio.paused) return;
+                            const p = audio.play();
+                            if (p && typeof p.then === 'function') {
+                                p.then(() => { stopAdAudio(); }).catch(() => { /* ignore */ });
+                            }
+                        };
+                        document.addEventListener('visibilitychange', resumeOnVisible);
+                    };
+
+                    const attemptPlay = (isRetry) => {
+                        if (!audio) {
+                            finishSwapLock();
+                            return;
+                        }
+                        const playPromise = audio.play();
+                        if (playPromise === undefined || typeof playPromise.then !== 'function') {
+                            if (audio && !audio.paused) stopAdAudio();
+                            finishSwapLock();
+                            return;
+                        }
+                        playPromise.then(() => {
+                            // play() resolveu: sessão da próxima faixa ativa; libera o ad.
+                            stopAdAudio();
+                            finishSwapLock();
+                        }).catch((err) => {
+                            if (err && err.name === 'AbortError') {
+                                finishSwapLock();
+                                return;
+                            }
+                            if (!isRetry && audio && currentUrl === targetUrl) {
+                                let retried = false;
+                                const retryOnce = () => {
+                                    if (retried) return;
+                                    retried = true;
+                                    if (!audio) {
+                                        finishSwapLock();
+                                        return;
+                                    }
+                                    audio.removeEventListener('canplay', retryOnce);
+                                    audio.removeEventListener('loadeddata', retryOnce);
+                                    if (currentUrl !== targetUrl) {
+                                        finishSwapLock();
+                                        return;
+                                    }
+                                    attemptPlay(true);
+                                };
+                                audio.addEventListener('canplay', retryOnce);
+                                audio.addEventListener('loadeddata', retryOnce);
+                                if (audio.readyState >= 2) {
+                                    retryOnce();
+                                }
+                                return;
+                            }
+                            if (err && err.name === 'NotAllowedError' && document.visibilityState !== 'visible') {
+                                armResumeOnVisible();
+                            } else {
+                                console.error('Audio swap play error:', err);
+                            }
+                            finishSwapLock();
+                        });
+                    };
+
+                    attemptPlay(false);
                 };
 
                 processSwap(target);
@@ -800,13 +851,19 @@
         restoreAdBreakChrome();
     }
 
-    function clearAutoNext() {
+    /**
+     * @param {{ keepAdAudio?: boolean }} [opts] — keepAdAudio: preserva ad durante handoff swapAndPlay
+     */
+    function clearAutoNext(opts) {
         autoNextGen += 1;
         if (autoNextTimer) {
             clearInterval(autoNextTimer);
             autoNextTimer = null;
         }
-        stopAdAudio();
+        // Em handoff seamless, o ad permanece até playing/play resolve da próxima faixa.
+        if (!(opts && opts.keepAdAudio)) {
+            stopAdAudio();
+        }
         autoNextSession = null;
         restoreAutoNextUi();
     }
@@ -856,6 +913,7 @@
     /**
      * Finaliza o ad break com uma única fonte de verdade (timer JS).
      * Invalida a sessão antes de avançar para impedir callbacks obsoletos.
+     * Mantém adAudio tocando durante o handoff — stop só em playing/play resolve.
      */
     function finishAdBreak(myGen, advanceFn) {
         if (autoNextGen !== myGen) return;
@@ -868,7 +926,6 @@
         }
         autoNextSession = null;
         autoNextGen += 1;
-        stopAdAudio();
         restoreAutoNextUi();
         if (typeof advanceFn === 'function' && art) {
             advanceFn(art);
@@ -935,13 +992,8 @@
                 const startedAt = autoNextSession.startedAt || performance.now();
                 const elapsed = performance.now() - startedAt;
 
-                if (adAudio && !adAudio.paused && adAudio.currentTime >= AD_BREAK_SEC) {
-                    try {
-                        adAudio.pause();
-                    } catch (_) {
-                        /* ignore */
-                    }
-                }
+                // Não pausar adAudio aqui: ele precisa continuar durante swapAndPlay
+                // para não esfriar a sessão de mídia em background.
 
                 if (elapsed >= AD_BREAK_MS) {
                     const mp = window.Mary && window.Mary.active && window.Mary.active.player;
@@ -1800,11 +1852,21 @@
 
         const advanceToArticle = (targetArt) => {
             autoNextDismissed = true;
-            clearAutoNext();
-            if (!targetArt || dead) return;
+            if (!targetArt || dead) {
+                clearAutoNext();
+                return;
+            }
             const targetUrl = '?slug=' + targetArt.slug;
+            const canSeamlessSwap = Boolean(
+                targetArt.audio_full_url &&
+                controller &&
+                controller.mode === 'file' &&
+                typeof controller.swapAndPlay === 'function'
+            );
+            // Preserva adAudio no handoff seamless; stop ocorre em playing/play resolve.
+            clearAutoNext({ keepAdAudio: canSeamlessSwap });
 
-            if (targetArt.audio_full_url && controller && controller.mode === 'file') {
+            if (canSeamlessSwap) {
                 const audioSrc = targetArt.audio_full_url;
 
                 setMediaSessionMetadata(targetArt);
