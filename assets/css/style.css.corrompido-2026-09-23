@@ -1,0 +1,940 @@
+/* Phosphor: hide PUA tofu until icon fonts are ready (see theme.js). */
+html:not(.ph-icons-ready) .ph:before,
+html:not(.ph-icons-ready) .ph-fill:before {
+    visibility: hidden;
+}
+
+:root {
+    /* Brand Colors — dourado/laranja mostarda é a identidade (não amarelo / metálico / olive) */
+    --qualquer-tecla-black: #0c0c0c;
+    --qualquer-tecla-black-hover: #1a1a1a;
+    --brand-mustard: #d4af37; /* primitivo imutável — identidade cromática */
+    --brand-mustard-hover: #b8962e;
+    /* ink UI (links/ícones) — mesma mostarda canônica nos dois temas, sem derivação */
+    --qualquer-tecla-gold: var(--brand-mustard);
+    --qualquer-tecla-gold-hover: var(--brand-mustard-hover);
+    /* fill/decoração brand — sempre mostarda canônica nos dois temas */
+    --qualquer-tecla-gold-bright: var(--brand-mustard);
+    --qualquer-tecla-gold-light: color-mix(in srgb, var(--brand-mustard) 10%, transparent);
+    --title-mark: var(--brand-mustard);
+    --title-mark-ink: var(--qualquer-tecla-black);
+    --qualquer-tecla-white: #ffffff;
+    /* Gelo: canvas do modo claro — off-white neutro, nunca branco puro */
+    --qualquer-tecla-ice: #f2f2f3;
+    --qualquer-tecla-gray: #6c757d;
+    --qualquer-tecla-gray-light: #eaeaea;
+    --qualquer-tecla-gray-dark: #343a40;
+    --qualquer-tecla-border: #222222;
+
+    /* Estados semânticos (feedback UI — não confundir com ouro editorial) */
+    --color-success: #3d9a6a;
+    --color-danger: #e35d6a;
+    --color-warning: var(--brand-mustard);
+    --color-info: var(--qualquer-tecla-gray);
+
+    /*
+     * Tipografia DS — papéis (não espalhar brand em UI):
+     * Brand Lockup  → --font-brand (Bricolage) — logo, watermarks, category WM
+     * Brand Display → --font-brand-tech (Genos) — footer tech + massive only
+     * Heading/Body  → --font-heading / --font-body (Noticia Text)
+     * UI / Metadata → --font-ui / --font-meta (system-ui)
+     * Code          → --font-code (ui-monospace stack — sem webfont)
+     * Pesos oficiais: 400 / 500 / 600 / 700 / 800 (brand). Sem 550.
+     * Oxanium não faz parte do sistema (não carregar).
+     */
+    --font-editorial: "Noticia Text", serif;
+    --font-heading: var(--font-editorial);
+    --font-body: var(--font-editorial);
+    --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-meta: var(--font-ui);
+    --font-code: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    --font-brand: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    /* Display industrial/HUD — Genos: somente footer tech + massive */
+    --font-brand-tech: "Genos", "Bricolage Grotesque", system-ui, sans-serif;
+    /* Lockup: mesmo peso nas duas palavras — assinatura vem de caixa + ouro + escala */
+    --font-brand-weight: 800;
+    --font-brand-weight-display: 800;
+    --font-brand-tracking: -0.014em;
+    --font-brand-mark-tracking: -0.028em;
+    --font-brand-word-gap: 0.11em;
+    --font-brand-mark-scale: 1.055;
+    /* Massive brand (display grande): tracking aberto + sem kern apertado (par LA) */
+    --font-brand-tech-tracking: 0.04em;
+    /* Footer badge: all-caps mais arejado + escala/gap próprios.
+       Gap QUALQUER|TECLA: separação leve (mesmo ritmo óptico do massive via word-spacing). */
+    --font-brand-tech-footer-tracking: 0.06em;
+    --font-brand-tech-footer-word-gap: 0.12em;
+    --font-brand-tech-footer-size: clamp(1.12rem, 2vw, 1.32rem);
+    --font-brand-tech-footer-weight: 800;
+    /* Escala de pesos DS (não inventar 550 / 450 / 650) */
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    /* Nav uppercase (UI, não logo) */
+    --font-nav-tracking: 0.06em;
+    --font-nav-weight: 600;
+    --font-meta-tracking: 0.08em;
+    /* Kickers / section labels uppercase (mais aberto que meta padrão) */
+    --font-kicker-tracking: 0.12em;
+
+    /* Type scale — valores já aprovados; tokens semânticos = manutenção, não redesign */
+    --text-hero-title: clamp(1.26rem, 3.1vw, 2.1rem);
+    --text-hero-excerpt: 0.975rem;
+    --text-article-title: clamp(1.72rem, 3.6vw, 2.38rem);
+    --text-feed-heading: clamp(1.2rem, 1.85vw, 1.42rem);
+    --text-card-title: clamp(1.12rem, 1.2vw, 1.18rem);
+    --text-badge: 0.6875rem;
+    --text-meta: 0.6875rem;
+    /* UI scale (clusters reais público + admin) */
+    --text-ui-2xs: 0.72rem;      /* chrome denso admin */
+    --text-ui-compact: 0.78rem;  /* actions / tabs / labels */
+    --text-ui-xs: 0.8125rem;     /* breadcrumbs / toasts */
+    --text-ui-sm: 0.875rem;      /* forms / filters */
+    --text-ui-md: 1rem;          /* UI body / inputs */
+    --text-ui-lg: 1.05rem;       /* leads curtos / editor chrome */
+    --text-ui-xl: 1.15rem;       /* subheads UI */
+
+    /* Line-height scale */
+    --leading-none: 1;
+    --leading-tight: 1.2;
+    --leading-snug: 1.3;
+    --leading-normal: 1.45;
+    --leading-relaxed: 1.55;
+
+    /* Tracking complementar (brand/meta/nav/kicker já acima) */
+    --font-heading-tracking: -0.014em;
+    --font-ui-tracking: 0.05em;
+
+    /* Bridge Bootstrap 5 — uma fonte de verdade; evita overrides pontuais */
+    --bs-font-sans-serif: var(--font-ui);
+    --bs-body-font-family: var(--font-ui);
+    --bs-body-font-size: var(--text-ui-md);
+    --bs-body-font-weight: var(--font-weight-regular);
+    --bs-headings-font-family: var(--font-heading);
+
+    /* Deco / watermarks de painel (menu, sidebar, ícones) */
+    --deco-opacity: 0.05;
+    --deco-icon-size: 7.75rem;
+    --deco-icon-inset: -1.1rem;
+    --panel-wm-size: clamp(5.5rem, 28vw, 8.5rem);
+    --panel-wm-inset: 0.2rem;
+    --sidebar-wm-size: clamp(4.25rem, 16vw, 6.75rem);
+    /* Close compartilhado: menu mobile, busca, comentários */
+    --panel-close-size: 3.1rem;
+    --panel-close-icon-size: 1.7rem;
+
+    /* Tokens semânticos — valores do modo claro = visual atual */
+    --body-bg: var(--qualquer-tecla-ice);
+    --text-primary: var(--qualquer-tecla-black);
+    --text-secondary: var(--qualquer-tecla-gray);
+    --surface: #fbfbfc;
+    --surface-muted: #efeff0;
+    --surface-elevated: #e7e7e9;
+    --border-subtle: #e7e7e9;
+    --border-muted: #dfdfe1;
+    --border-strong: var(--qualquer-tecla-black);
+    --border-hairline: rgba(0, 0, 0, 0.06);
+    --placeholder-bg: #e3e3e5;
+    --article-text: #1a1a1a;
+    --blockquote-text: var(--qualquer-tecla-gray-dark);
+    --dot-color: rgba(0, 0, 0, 0.06);
+    --overlay-scrim: rgba(12, 12, 12, 0.4);
+    --chrome-icon: var(--qualquer-tecla-white);
+    --chrome-icon-muted: #adb5bd;
+
+    /* Easings + motion (clusters reais) */
+    --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+    --ease-in-out-circ: cubic-bezier(0.785, 0.135, 0.15, 0.86);
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --duration-fast: 0.15s;
+    --duration-normal: 0.2s;
+    --duration-emphasized: 0.28s;
+    --duration-slow: 0.42s;
+
+    /* Radius & ritmo — sutis, harmoniosos */
+    --radius-xs: 0.2rem;
+    --radius-sm: 0.3125rem;
+    --radius-md: 0.4375rem;
+    --radius-lg: 0.625rem;
+    --radius-pill: 999px;
+
+    /* Spacing — escala a partir de gaps/paddings reais (não genérica artificial) */
+    --space-xs: 0.35rem;
+    --space-sm: 0.4rem;
+    --space-md: 0.5rem;
+    --space-md-plus: 0.55rem;
+    --space-lg: 0.65rem;
+    --space-xl: 0.75rem;
+    --space-2xl: 0.85rem;
+    --space-tight: 0.625rem;
+    --space-cozy: 1rem;
+    --space-section: 1.6rem;
+    --space-block: 2.15rem;
+
+    /* Borders — default = muted (controles/cards) */
+    --border-default: var(--border-muted);
+    --divider-dotted: var(--border-hairline);
+
+    /* Elevation — editorial flat; só chrome flutuante */
+    --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.10), 0 0 1px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08);
+
+    /* Focus — chrome público (1px); admin mantém anéis próprios 2px */
+    --focus-ring-color: var(--qualquer-tecla-gold);
+    --focus-ring-chrome: 1px solid var(--focus-ring-color);
+
+    /* Iconografia UI (Bootstrap Icons via font-size) */
+    --icon-sm: var(--text-ui-sm);
+    --icon-md: var(--text-ui-lg);
+    --icon-lg: 1.25rem;
+
+    /* Vidro editorial: subnav + share bar (mesmo material; alturas deliberadamente distintas) */
+    --chrome-glass-bg: color-mix(in srgb, var(--body-bg) 92%, transparent);
+    --chrome-glass-blur: 6px;
+    --chrome-rail-h: 2.35rem; /* subnav tipográfica — não forçar na share bar */
+    /* Margem horizontal do chrome (masthead + Mary) — uma linha vertical */
+    --chrome-inline: 1.25rem;
+    --chrome-rail-max: 1320px;
+    /* Chrome stripes: diagonal editorial JP (ma + mostarda brand, não ink) — masthead + footer */
+    --qt-chrome-stripe: color-mix(in srgb, var(--brand-mustard) 15%, transparent);
+    --qt-chrome-stripe-gap: 22px;
+    --qt-chrome-stripe-angle: -45deg;
+    --qt-chrome-edge: rgba(255, 255, 255, 0.06);
+    --qt-chrome-stripes: repeating-linear-gradient(
+        var(--qt-chrome-stripe-angle),
+        transparent 0,
+        transparent calc(var(--qt-chrome-stripe-gap) - 1px),
+        var(--qt-chrome-stripe) calc(var(--qt-chrome-stripe-gap) - 1px),
+        var(--qt-chrome-stripe) var(--qt-chrome-stripe-gap)
+    );
+    /*
+     * Campo de dissolução das listras (masthead + footer).
+     * A curva é gerada DENTRO do SVG: um núcleo de 640 passa por feGaussianBlur
+     * só no eixo X com sigma 200. Com sigma dessa ordem o degrau não vira rampa,
+     * vira SINO — o pico fica concentrado no centro (ponto focal) e a queda se
+     * alonga por quase toda a meia-largura. Sendo diferença de duas erf, a curva
+     * é infinitamente suave: nenhum vértice de inclinação, nenhum platô, e
+     * derivada tendendo a zero tanto no centro quanto nas bordas, então não há
+     * ponto onde o efeito comece. É isso que elimina as faixas — lista de
+     * color-stop em CSS interpola linearmente e cada stop vira uma quebra de
+     * inclinação que o olho amplifica como banda (Mach banding), por mais fino
+     * que seja o passo de cor.
+     * O retângulo de piso (alpha .24) fica fora do filtro: as laterais ficam
+     * mais apagadas e mais escuras, sem nunca zerar as listras. O campo é
+     * constante na vertical, então a máscara pode ser esticada em qualquer
+     * altura de footer sem distorcer nada.
+     */
+    --qt-chrome-stripe-dissolve: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 8' preserveAspectRatio='none'%3E%3Cfilter id='qtd' filterUnits='userSpaceOnUse' x='-260' y='-8' width='2120' height='24' color-interpolation-filters='sRGB'%3E%3CfeGaussianBlur stdDeviation='200 0'/%3E%3C/filter%3E%3Crect width='1600' height='8' fill='%23fff' opacity='.24'/%3E%3Crect x='480' y='-8' width='640' height='24' fill='%23fff' filter='url(%23qtd)'/%3E%3C/svg%3E");
+
+    /* Sidebar / newsletter */
+    --sidebar-panel-bg: #ececee;
+    --sidebar-panel-fg: var(--text-primary);
+    --sidebar-panel-muted: var(--text-secondary);
+    --sidebar-panel-accent: var(--text-primary);
+    --sidebar-panel-input-bg: #e4e4e6;
+    --sidebar-panel-input-border: #d7d7d9;
+
+    --hero-card-bg: var(--sidebar-panel-bg);
+    --hero-img-opacity: 0.88;
+    --img-saturate: 1.14;
+    --hero-overlay: linear-gradient(
+        to top,
+        color-mix(in srgb, var(--sidebar-panel-bg) 92%, transparent) 0%,
+        color-mix(in srgb, var(--sidebar-panel-bg) 48%, transparent) 38%,
+        transparent 74%
+    );
+
+    /* Scrollbar do documento — ouro como pontuação; trilho = canvas da página */
+    --scrollbar-size: 10px;
+    --scrollbar-size-inner: 8px; /* painéis e listas: um passo abaixo do scroller primário */
+    --scrollbar-inset: 2px; /* recuo do thumb → ~6px visíveis dentro da área de arrasto */
+    --scrollbar-thumb: var(--brand-mustard);
+    --scrollbar-thumb-hover: var(--brand-mustard-hover);
+    --scrollbar-track: var(--body-bg);
+    --scrollbar-rule: var(--border-muted); /* régua que separa o trilho do conteúdo */
+
+    color-scheme: light;
+}
+
+/* Light: mostarda canônica idêntica ao escuro — sem derivação de matiz/luminância */
+[data-theme="light"] {
+    --qualquer-tecla-gray: #5a6268;
+    --text-secondary: #5a6268;
+}
+
+@media (min-width: 992px) {
+    :root {
+        --deco-icon-size: 8.5rem;
+        --deco-icon-inset: -1.2rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    :root {
+        --sidebar-wm-size: clamp(4.5rem, 19vw, 6.25rem);
+        --panel-wm-inset: 0.15rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    :root {
+        /* Menu/comentários mobile: +1vw sutil (33→34) */
+        --panel-wm-size: clamp(6.15rem, 34vw, 9.5rem);
+        --panel-wm-inset: 0.15rem;
+        --deco-icon-size: 6.75rem;
+        --deco-icon-inset: -0.85rem;
+        --sidebar-wm-size: clamp(5rem, 24vw, 6.75rem);
+    }
+}
+
+/* Dark Mode — superfícies/textos/bordas; ouro herda o :root (fonte única) */
+[data-theme="dark"] {
+    --body-bg: #141414;
+    --text-primary: #f2f2f2;
+    --text-secondary: #adb5bd;
+    --surface: #1c1c1c;
+    --surface-muted: #181818;
+    --surface-elevated: var(--qualquer-tecla-gray-dark);
+    --border-subtle: #262626;
+    --border-muted: #333333;
+    --border-strong: #e8e8e8;
+    --border-hairline: rgba(255, 255, 255, 0.06);
+    --border-default: var(--border-muted);
+    --shadow-sm: 0 1px 6px rgba(0, 0, 0, 0.28), 0 0 1px rgba(0, 0, 0, 0.18);
+    --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.2);
+    --placeholder-bg: #2a2a2a;
+    --article-text: #e6e6e6;
+    --blockquote-text: #c8c8c8;
+    --qualquer-tecla-border: #2b2b2b;
+    --dot-color: rgba(255, 255, 255, 0.045);
+    --overlay-scrim: rgba(0, 0, 0, 0.55);
+    --chrome-icon: var(--qualquer-tecla-white);
+    --chrome-icon-muted: #adb5bd;
+
+    --sidebar-panel-bg: var(--qualquer-tecla-black);
+    --sidebar-panel-fg: var(--qualquer-tecla-white);
+    --sidebar-panel-muted: rgba(255, 255, 255, 0.55);
+    --sidebar-panel-accent: var(--qualquer-tecla-white);
+    --sidebar-panel-input-bg: var(--qualquer-tecla-black-hover);
+    --sidebar-panel-input-border: var(--border-muted);
+    --hero-card-bg: var(--qualquer-tecla-black);
+    --hero-img-opacity: 0.68;
+    --hero-overlay: linear-gradient(to top, rgba(12, 12, 12, 0.84), transparent 68%);
+
+    color-scheme: dark;
+}
+
+/* Global resets and base tags */
+html {
+    background-color: var(--body-bg);
+}
+
+body {
+    /* Empilha o fundo pontilhado atrás do watermark (z-index:-1),
+       sem cobrir o texto vertical da home/categoria. */
+    isolation: isolate;
+    background-color: var(--body-bg);
+    background-image: radial-gradient(var(--dot-color) 1.25px, transparent 1px);
+    background-size: 22px 22px;
+    background-position: 0 0;
+    color: var(--text-primary);
+    font-family: var(--font-ui); /* Default to UI font for generic things */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================================================
+   Scrollbar do documento (site público) — trilho = canvas, thumb = mostarda
+   --------------------------------------------------------------------------
+   O admin tem linguagem própria de scrollbar (admin.css) e carrega este
+   arquivo, por isso o escopo exclui os seus body.
+   As duas camadas são mutuamente exclusivas de propósito: pela spec, quando
+   scrollbar-color/scrollbar-width valem algo diferente de auto, o navegador
+   ignora os pseudo-elementos ::-webkit-scrollbar. Declarar as duas no mesmo
+   escopo custaria o raio, o recuo e o :hover do thumb no Chromium/WebKit.
+   ========================================================================== */
+@supports selector(::-webkit-scrollbar) {
+    html:not(:has(body[class^="admin"]))::-webkit-scrollbar {
+        width: var(--scrollbar-size);
+        height: var(--scrollbar-size);
+    }
+
+    html:not(:has(body[class^="admin"]))::-webkit-scrollbar-track,
+    html:not(:has(body[class^="admin"]))::-webkit-scrollbar-corner {
+        border-left: 1px solid var(--scrollbar-rule);
+        background-color: var(--scrollbar-track);
+    }
+
+    html:not(:has(body[class^="admin"]))::-webkit-scrollbar-thumb {
+        min-height: 2.75rem;
+        border: var(--scrollbar-inset) solid transparent;
+        border-radius: var(--radius-pill);
+        background-color: var(--scrollbar-thumb);
+        background-clip: content-box;
+    }
+
+    html:not(:has(body[class^="admin"]))::-webkit-scrollbar-thumb:hover {
+        background-color: var(--scrollbar-thumb-hover);
+    }
+
+    /* Setas do Chrome/Edge no Windows */
+    html:not(:has(body[class^="admin"]))::-webkit-scrollbar-button {
+        display: none;
+        width: 0;
+        height: 0;
+    }
+}
+
+/* Scrollers internos (menu mobile, painel de comentários, listas): mesma
+   mostarda, porém trilho transparente — cada painel tem superfície própria,
+   então uma faixa de cor fixa descolaria do fundo.
+   O body fica de fora: o Blink usa o estilo dele para a barra do viewport,
+   que já tem tratamento próprio acima. */
+@supports selector(::-webkit-scrollbar) {
+    html:not(:has(body[class^="admin"])) body *::-webkit-scrollbar {
+        width: var(--scrollbar-size-inner);
+        height: var(--scrollbar-size-inner);
+    }
+
+    html:not(:has(body[class^="admin"])) body *::-webkit-scrollbar-track,
+    html:not(:has(body[class^="admin"])) body *::-webkit-scrollbar-corner {
+        border: 0;
+        background-color: transparent;
+    }
+
+    html:not(:has(body[class^="admin"])) body *::-webkit-scrollbar-thumb {
+        min-height: 2rem;
+        border: var(--scrollbar-inset) solid transparent;
+        border-radius: var(--radius-pill);
+        background-color: var(--scrollbar-thumb);
+        background-clip: content-box;
+    }
+
+    html:not(:has(body[class^="admin"])) body *::-webkit-scrollbar-thumb:hover {
+        background-color: var(--scrollbar-thumb-hover);
+    }
+}
+
+@supports not selector(::-webkit-scrollbar) {
+    html:not(:has(body[class^="admin"])) {
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+
+    html:not(:has(body[class^="admin"])) body * {
+        scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
+}
+
+/* Touch: devolve o overlay nativo (sem trilho, sem largura de layout) e só
+   tinge o indicador onde o navegador permite. */
+@media (hover: none) and (pointer: coarse) {
+    html:not(:has(body[class^="admin"])) {
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
+}
+
+/* Mais presença sem uma segunda tonalidade de mostarda. */
+@media (prefers-contrast: more) {
+    :root {
+        --scrollbar-inset: 0px;
+    }
+}
+
+/* Com o menu aberto o offcanvas trava a rolagem, e sem scroller o navegador
+   apaga a barra do documento. Estes pseudo-elementos redesenham a barra parada
+   na faixa que o próprio lock reserva — a borda direita da página continua lá,
+   inerte. A classe só existe quando há barra clássica medida (layout.js), então
+   o overlay do touch não entra aqui.
+   Ficam no body, não no backdrop: o backdrop sai do DOM logo no início do
+   fechamento, enquanto o lock só é liberado ao fim da transição do painel. */
+html.has-frozen-scrollbar body::before,
+html.has-frozen-scrollbar body::after {
+    content: "";
+    position: fixed;
+    right: 0;
+    z-index: 1039; /* sob o scrim do offcanvas (1040), sobre o conteúdo */
+    pointer-events: none;
+}
+
+html.has-frozen-scrollbar body::before {
+    inset-block: 0;
+    width: var(--scrollbar-size);
+    border-left: 1px solid var(--scrollbar-rule);
+    background-color: var(--scrollbar-track);
+}
+
+html.has-frozen-scrollbar body::after {
+    top: var(--scrollbar-frozen-top, 0);
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-frozen-height, 0);
+    /* Mesmo recorte do thumb nativo: a borda transparente devolve os 2px de
+       folga em todos os lados, senão o congelado nasce 4px mais alto. */
+    border: var(--scrollbar-inset) solid transparent;
+    border-radius: var(--radius-pill);
+    background-color: var(--scrollbar-thumb);
+    background-clip: content-box;
+}
+
+/* O lock devolve ao viewport a largura da barra, e o padding compensatório do
+   offcanvas não alcança elementos fixed: sem isto eles esticariam para baixo
+   da barra congelada. */
+html.has-frozen-scrollbar .category-header,
+html.has-frozen-scrollbar .consent-root {
+    right: var(--scrollbar-size);
+}
+
+
+
+/* Typography Editorial — Heading + Body */
+h1, h2, h3, h4, h5, h6,
+.font-editorial,
+.font-heading,
+.article-title {
+    font-family: var(--font-heading);
+}
+
+.article-content,
+.font-body {
+    font-family: var(--font-body);
+}
+
+.font-brand {
+    font-family: var(--font-brand);
+}
+
+.font-ui {
+    font-family: var(--font-ui);
+}
+
+.font-meta {
+    font-family: var(--font-meta);
+    font-size: var(--text-meta);
+}
+
+.font-code {
+    font-family: var(--font-code);
+}
+
+/* Arredondamentos sutis; offcanvas/modal full-bleed ficam retos; avatares 50% */
+.card,
+.card-img,
+.card-img-top,
+.card-img-bottom,
+.btn,
+.form-control,
+.form-select,
+.input-group-text,
+.dropdown-menu,
+.alert,
+.badge:not(.rounded-circle),
+.progress,
+.progress-bar,
+.list-group-item,
+.img-thumbnail,
+.rounded,
+.rounded-1,
+.rounded-2,
+.rounded-3,
+.rounded-4,
+.rounded-5 {
+    border-radius: var(--radius-sm) !important;
+}
+
+.rounded-pill {
+    border-radius: var(--radius-pill) !important;
+}
+
+.offcanvas,
+body:not(.admin-page) .modal-content {
+    border-radius: 0 !important;
+}
+
+.shadow,
+.shadow-sm,
+.shadow-lg {
+    box-shadow: none !important;
+}
+
+.text-gold {
+    color: var(--qualquer-tecla-gold) !important;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--qualquer-tecla-gold);
+}
+
+.bg-gold {
+    background-color: var(--qualquer-tecla-gold-bright) !important;
+    color: var(--qualquer-tecla-black) !important;
+}
+
+.bg-black {
+    background-color: var(--qualquer-tecla-black) !important;
+    color: var(--qualquer-tecla-white) !important;
+}
+
+/* Selection */
+::selection {
+    background-color: var(--qualquer-tecla-gold-bright);
+    color: var(--qualquer-tecla-black);
+}
+
+/* Leve boost de saturação em todas as fotos do site */
+img {
+    filter: saturate(var(--img-saturate));
+}
+
+/* ── Button API (site público) ─────────────────────────────────────────
+ * primary  → .btn-gold          (CTA editorial uppercase)
+ * secondary→ .btn-outline-gold  (ação secundária)
+ * ghost/ink→ .btn-outline-ink   (neutro)
+ * Admin usa .admin-action--* (API paralela intencional: densidade SaaS).
+ * ────────────────────────────────────────────────────────────────────── */
+
+.btn:active,
+.btn-gold:active,
+.btn-outline-gold:active,
+.btn-outline-ink:active,
+.comments-launch-btn:active,
+#load-more-news:active,
+#load-more-category:active {
+    transform: none !important;
+}
+
+.btn-gold {
+    background-color: var(--qualquer-tecla-gold-bright);
+    color: var(--qualquer-tecla-black);
+    border: none;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--font-ui-tracking);
+    font-size: 0.8rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: var(--radius-sm);
+}
+
+.btn-gold:hover {
+    background-color: color-mix(in srgb, var(--qualquer-tecla-gold-bright) 88%, #000);
+    color: var(--qualquer-tecla-black);
+}
+
+.btn-gold:focus,
+.btn-gold:active {
+    background-color: var(--qualquer-tecla-gold-bright);
+    color: var(--qualquer-tecla-black);
+    box-shadow: none;
+    outline: none;
+}
+
+.btn-gold:focus-visible {
+    background-color: var(--qualquer-tecla-gold-bright);
+    color: var(--qualquer-tecla-black);
+    outline: 2px solid var(--qualquer-tecla-gold-bright);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+.btn-gold:disabled,
+.btn-gold.disabled {
+    background-color: var(--qualquer-tecla-gold-bright);
+    color: var(--qualquer-tecla-black);
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.btn-outline-gold {
+    border: 1px solid var(--qualquer-tecla-gold-bright);
+    color: var(--qualquer-tecla-gold);
+    background: transparent;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--font-ui-tracking);
+    font-size: 0.8rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: var(--radius-sm);
+}
+
+.btn-outline-gold:hover {
+    background: var(--qualquer-tecla-gold-bright);
+    color: var(--qualquer-tecla-black);
+}
+
+.btn-outline-gold:focus,
+.btn-outline-gold:active {
+    background: transparent;
+    color: var(--qualquer-tecla-gold);
+    border-color: var(--qualquer-tecla-gold-bright);
+    box-shadow: none;
+    outline: none;
+}
+
+/* Clique com mouse/touch: não manter aparência “pressionada” */
+.btn-outline-gold:focus:not(:focus-visible) {
+    background: transparent;
+    color: var(--qualquer-tecla-gold);
+    border-color: var(--qualquer-tecla-gold-bright);
+    outline: none;
+    box-shadow: none;
+}
+
+.btn-outline-gold:focus-visible {
+    background: transparent;
+    color: var(--qualquer-tecla-gold);
+    border-color: var(--qualquer-tecla-gold-bright);
+    outline: 2px solid var(--qualquer-tecla-gold-bright);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+.btn-outline-gold:disabled,
+.btn-outline-gold.disabled {
+    color: var(--qualquer-tecla-gold);
+    border-color: var(--qualquer-tecla-gold-bright);
+    background: transparent;
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* Outline editorial (borda/ink do tema — secundário) */
+.btn-outline-ink {
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
+    background: transparent;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--font-ui-tracking);
+    font-size: 0.8rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: var(--radius-sm);
+}
+
+.btn-outline-ink:hover {
+    background: var(--text-primary);
+    color: var(--body-bg);
+    border-color: var(--text-primary);
+}
+
+.btn-outline-ink:focus,
+.btn-outline-ink:active {
+    background: transparent;
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+    box-shadow: none;
+    outline: none;
+}
+
+.btn-outline-ink:focus:not(:focus-visible) {
+    background: transparent;
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+    outline: none;
+    box-shadow: none;
+}
+
+.btn-outline-ink:focus-visible {
+    background: transparent;
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+    outline: 2px solid var(--qualquer-tecla-gold-bright);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+.btn-outline-ink:disabled,
+.btn-outline-ink.disabled {
+    color: var(--text-secondary);
+    border-color: var(--border-muted);
+    background: transparent;
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* Cards */
+.editorial-card {
+    background-color: transparent;
+    border: none;
+    border-bottom: none;
+    border-radius: 0;
+    padding-bottom: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.editorial-card .img-wrapper {
+    overflow: hidden;
+    margin-bottom: 0.8rem;
+    border-radius: var(--radius-sm);
+    aspect-ratio: 16 / 10;
+    background-color: var(--placeholder-bg);
+}
+
+.editorial-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.editorial-card-body {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.category-badge {
+    text-transform: uppercase;
+    font-family: var(--font-meta);
+    font-size: var(--text-badge);
+    font-weight: var(--font-weight-semibold);
+    color: var(--qualquer-tecla-gold);
+    letter-spacing: var(--font-meta-tracking);
+    margin-bottom: 0.5rem;
+    display: inline-block;
+}
+
+.editorial-card-title {
+    font-family: var(--font-editorial);
+    font-size: 1.24rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    line-height: var(--leading-snug);
+    letter-spacing: var(--font-heading-tracking);
+    color: var(--text-primary);
+}
+
+.editorial-card:hover .editorial-card-title {
+    color: var(--text-primary);
+}
+
+/*
+ * The Verge: faixa na metade inferior do glifo (deslocada para baixo).
+ * Técnica real: inset box-shadow; texto mantém a cor; sem transition.
+ */
+.title-ink {
+    display: inline;
+    color: inherit;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+}
+
+a:hover .title-ink,
+a:focus-visible .title-ink {
+    color: inherit;
+    /* um pouco acima da metade (0.5em estava baixo demais) */
+    box-shadow: var(--title-mark) 0 -0.65em 0 0 inset;
+}
+
+.editorial-card-excerpt {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.8rem;
+    flex-grow: 1;
+    line-height: var(--leading-relaxed);
+}
+
+.editorial-card-meta {
+    font-size: var(--text-meta);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: var(--font-ui-tracking);
+    font-weight: 500;
+    margin-top: auto;
+}
+
+
+@media (max-height: 600px) {
+    .mary-audio-player.is-expanded {
+        height: 380px;
+    }
+    .mary-player-expanded__cover { width: 100px; height: auto; max-height: 140px; }
+    .mary-player-expanded__cover-wrapper { margin-top: 0.5rem; margin-bottom: 1rem; }
+    .mary-player-expanded__info { margin-bottom: 1rem; }
+    .mary-player-expanded__progress-section { margin-bottom: 1rem; }
+    .mary-player-expanded__main-controls { margin-bottom: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mary-audio-player {
+        transition: none !important;
+    }
+    .mary-player-expanded {
+        transition: none !important;
+    }
+    .mary-player-expanded__title.is-marquee {
+        animation: none !important;
+    }
+    .mary-speed-segmented__highlight {
+        transition: none !important;
+    }
+}
+
+/* Global drag state to block page interactions */
+body.mary-is-dragging {
+    pointer-events: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
+body.mary-is-dragging .mary-dock {
+    pointer-events: auto !important;
+}
+
+.offcanvas {
+    z-index: 5030 !important;
+}
+
+.mary-speed-segmented__option:focus-visible {
+    outline: 2px solid var(--qualquer-tecla-gold);
+    outline-offset: -2px;
+    border-radius: 100px;
+}
+
+
+.mary-player-expanded__drag-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 10px;
+    cursor: grab;
+    z-index: 10;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+}
+.mary-player-expanded__drag-area:active {
+    cursor: grabbing;
+}
+.mary-player-expanded__drag-handle {
+    width: 36px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2.5px;
+    transition: background 0.2s;
+}
+.mary-player-expanded__drag-area:hover .mary-player-expanded__drag-handle {
+    background: rgba(255, 255, 255, 0.5);
+}

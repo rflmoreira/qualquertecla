@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <script>!function(){try{var t=localStorage.getItem("qualquer-tecla-theme");document.documentElement.setAttribute("data-theme",t==="dark"||t==="light"?t:"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}}();</script>
+    <script src="../assets/js/theme.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Categorias | Qualquer Tecla Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/regular/Phosphor.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/fill/Phosphor-Fill.woff2">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/regular/style.css">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/fill/style.css">
+    <link rel="icon" href="../favicon.ico" sizes="any">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-32x32.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-16x16.png" type="image/png" sizes="16x16">
+    <link rel="apple-touch-icon" href="../assets/img/brand/qt-apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noticia+Text:ital,wght@0,400;0,700;1,400;1,700&family=Bricolage+Grotesque:wght@700;800&family=Genos:wght@700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="../assets/css/style.css?v=20261003pwastrip6">
+    <link rel="stylesheet" href="../assets/css/admin.css?v=20260929">
+</head>
+<body class="admin-page">
+    <div class="admin-shell">
+        <aside id="admin-sidebar"></aside>
+        <main class="admin-content">
+            <header class="admin-page-header">
+                <div class="admin-page-header-copy">
+                    <p class="dashboard-kicker">Painel editorial · <span data-site-brand-name>Qualquer Tecla</span></p>
+                    <h1 class="admin-page-title">Categorias</h1>
+                    <p class="admin-page-subtitle">Editorias e agrupamentos do portal. Alterações refletem no editor e no site nesta sessão.</p>
+                </div>
+                <div class="admin-page-actions">
+                    <button type="button" class="admin-action admin-action--primary" id="btnNewCategory">
+                        <i class="ph ph-plus" aria-hidden="true"></i>
+                        <span>Nova categoria</span>
+                    </button>
+                </div>
+            </header>
+            <div class="admin-card">
+                <div class="admin-card-body">
+                    <div class="table-responsive">
+                        <table class="table admin-table admin-table--stack align-middle">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">Nome</th>
+                                    <th>Slug</th>
+                                    <th>Grupo</th>
+                                    <th>Descrição</th>
+                                    <th class="text-end pe-4">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cat-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div id="cat-empty" class="admin-empty" hidden>
+                        <span class="admin-empty-icon"><i class="ph ph-folders" aria-hidden="true"></i></span>
+                        <span class="admin-empty-title d-block">Nenhuma categoria</span>
+                        <span class="admin-empty-text">Crie a primeira editoria para organizar as matérias.</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+            <form class="modal-content" id="categoryForm">
+                <div class="modal-header">
+                    <div class="admin-modal-heading">
+                        <h2 class="modal-title" id="categoryModalTitle">Editar categoria</h2>
+                    </div>
+                    <button type="button" class="admin-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
+                        <i class="ph ph-x" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="modal-body admin-modal-body">
+                    <input type="hidden" id="categoryPreviousSlug">
+                    <div>
+                        <label class="admin-field-label" for="categoryName">Nome</label>
+                        <input type="text" class="form-control" id="categoryName" required maxlength="80" autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="admin-field-label" for="categorySlug">Slug</label>
+                        <input type="text" class="form-control" id="categorySlug" maxlength="80" placeholder="gerado a partir do nome" autocomplete="off">
+                        <p class="admin-field-hint mb-0">Usado nas URLs e no vínculo das matérias. Se alterar, as matérias desta categoria são atualizadas.</p>
+                    </div>
+                    <div>
+                        <label class="admin-field-label" for="categoryParent">Grupo (pai)</label>
+                        <select class="form-select" id="categoryParent">
+                            <option value="">Nenhum (categoria raiz)</option>
+                        </select>
+                        <p class="admin-field-hint mb-0">Ex.: Filmes &amp; Séries dentro de Geek.</p>
+                    </div>
+                    <div>
+                        <label class="admin-field-label" for="categoryDescription">Descrição</label>
+                        <textarea class="form-control" id="categoryDescription" rows="3" maxlength="240" placeholder="Texto curto sobre a editoria"></textarea>
+                    </div>
+                    <p class="admin-alert admin-alert--error mb-0" id="categoryFormError" hidden role="alert"></p>
+                </div>
+                <div class="modal-footer admin-modal-footer">
+                    <button type="button" class="admin-action admin-action--ghost" data-bs-dismiss="modal">
+                        <span>Cancelar</span>
+                    </button>
+                    <button type="submit" class="admin-action admin-action--primary">
+                        <span>Salvar</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>window.SITE_BASE = '../';</script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../config/supabase.js"></script>
+    <script src="../assets/js/data/mock-data.js?v=20260917spotify1"></script>
+    <script src="../assets/js/api.js?v=20260831support1"></script>
+    <script src="../assets/js/admin/auth-stub.js?v=20260826risk"></script>
+    <script src="../assets/js/admin/layout.js?v=20260909brand6"></script>
+    <script>
+        if (!window.AdminAuth.requireAuth()) throw new Error('auth');
+        window.AdminLayout.mountSidebar();
+
+        const tbody = document.getElementById('cat-tbody');
+        const empty = document.getElementById('cat-empty');
+        const form = document.getElementById('categoryForm');
+        const modalEl = document.getElementById('categoryModal');
+        const modal = new bootstrap.Modal(modalEl);
+        const titleEl = document.getElementById('categoryModalTitle');
+        const nameInput = document.getElementById('categoryName');
+        const slugInput = document.getElementById('categorySlug');
+        const parentSelect = document.getElementById('categoryParent');
+        const descInput = document.getElementById('categoryDescription');
+        const previousSlugInput = document.getElementById('categoryPreviousSlug');
+        const errorEl = document.getElementById('categoryFormError');
+
+        let slugTouched = false;
+        let allCategories = [];
+
+        function parentLabel(slug) {
+            if (!slug) return '—';
+            const parent = allCategories.find((c) => c.slug === slug);
+            return parent ? parent.name : slug;
+        }
+
+        function fillParentOptions(excludeSlug) {
+            parentSelect.innerHTML = '';
+            const none = document.createElement('option');
+            none.value = '';
+            none.textContent = 'Nenhum (categoria raiz)';
+            parentSelect.appendChild(none);
+
+            allCategories
+                .filter((c) => !c.parent && c.slug !== excludeSlug)
+                .slice()
+                .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+                .forEach((c) => {
+                    const opt = document.createElement('option');
+                    opt.value = c.slug;
+                    opt.textContent = c.name;
+                    parentSelect.appendChild(opt);
+                });
+        }
+
+        function renderCategories() {
+            tbody.innerHTML = '';
+            const list = allCategories
+                .slice()
+                .sort((a, b) => {
+                    const ga = a.parent || '';
+                    const gb = b.parent || '';
+                    if (ga !== gb) return ga.localeCompare(gb, 'pt-BR');
+                    return a.name.localeCompare(b.name, 'pt-BR');
+                });
+
+            if (!list.length) {
+                empty.hidden = false;
+                return;
+            }
+            empty.hidden = true;
+
+            list.forEach((c) => {
+                const tr = document.createElement('tr');
+                const cells = [
+                    { label: 'Nome', text: c.name, className: 'ps-4 fw-medium' },
+                    { label: 'Slug', text: c.slug },
+                    { label: 'Grupo', text: parentLabel(c.parent) },
+                    { label: 'Descrição', text: c.description || '—' }
+                ];
+                cells.forEach((cell) => {
+                    const td = document.createElement('td');
+                    if (cell.className) td.className = cell.className;
+                    td.setAttribute('data-label', cell.label);
+                    td.textContent = cell.text;
+                    tr.appendChild(td);
+                });
+
+                const actions = document.createElement('td');
+                actions.className = 'text-end pe-4';
+                actions.setAttribute('data-label', 'Ações');
+                actions.innerHTML =
+                    '<div class="d-inline-flex gap-1 justify-content-end">' +
+                    '<button type="button" class="admin-btn-icon cat-edit" aria-label="Editar categoria">' +
+                    '<i class="ph ph-pencil-simple" aria-hidden="true"></i></button>' +
+                    '<button type="button" class="admin-btn-icon cat-delete" aria-label="Excluir categoria">' +
+                    '<i class="ph ph-trash" aria-hidden="true"></i></button>' +
+                    '</div>';
+                actions.querySelector('.cat-edit').addEventListener('click', () => openEditor(c));
+                actions.querySelector('.cat-delete').addEventListener('click', () => removeCategory(c));
+                tr.appendChild(actions);
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openEditor(cat) {
+            errorEl.hidden = true;
+            slugTouched = false;
+            const isNew = !cat;
+            titleEl.textContent = isNew ? 'Nova categoria' : 'Editar categoria';
+            previousSlugInput.value = cat ? cat.slug : '';
+            nameInput.value = cat ? cat.name : '';
+            slugInput.value = cat ? cat.slug : '';
+            descInput.value = cat ? cat.description || '' : '';
+            fillParentOptions(cat ? cat.slug : '');
+            parentSelect.value = cat && cat.parent ? cat.parent : '';
+            modal.show();
+            setTimeout(() => nameInput.focus(), 50);
+        }
+
+        async function fetchAll() {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-secondary"><i class="ph ph-spinner ph-spin fs-4"></i><div class="mt-2">Carregando categorias...</div></td></tr>';
+            empty.hidden = true;
+            try {
+                allCategories = await window.API.getAllCategories();
+                renderCategories();
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-danger"><i class="ph ph-warning-circle fs-4"></i><div class="mt-2">Erro ao carregar categorias.</div></td></tr>';
+            }
+        }
+
+        async function removeCategory(cat) {
+            const ok = window.confirm(
+                'Excluir a categoria "' + cat.name + '"? Esta ação não pode ser desfeita.'
+            );
+            if (!ok) return;
+            try {
+                await window.API.deleteCategory(cat.slug);
+                await fetchAll();
+            } catch (err) {
+                window.alert(err.message || 'Não foi possível excluir.');
+            }
+        }
+
+        document.getElementById('btnNewCategory').addEventListener('click', () => openEditor(null));
+
+        nameInput.addEventListener('input', () => {
+            if (!previousSlugInput.value && !slugTouched && window.MockData) {
+                slugInput.value = window.MockData.slugifyCategory(nameInput.value);
+            }
+        });
+
+        slugInput.addEventListener('input', () => {
+            slugTouched = true;
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorEl.hidden = true;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+            try {
+                await window.API.upsertCategory({
+                    previousSlug: previousSlugInput.value || undefined,
+                    name: nameInput.value,
+                    slug: slugInput.value,
+                    parent: parentSelect.value,
+                    description: descInput.value
+                });
+                modal.hide();
+                await fetchAll();
+            } catch (err) {
+                errorEl.textContent = err.message || 'Não foi possível salvar.';
+                errorEl.hidden = false;
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        });
+
+        fetchAll();
+    </script>
+</body>
+</html>

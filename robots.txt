@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /busca.html
+Disallow: /config/
+Disallow: /scripts/
+Disallow: /db/
+Disallow: /netlify/
+
+Sitemap: https://qualquertecla.com.br/sitemap.xml

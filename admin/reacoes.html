@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <script>!function(){try{var t=localStorage.getItem("qualquer-tecla-theme");document.documentElement.setAttribute("data-theme",t==="dark"||t==="light"?t:"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}}();</script>
+    <script src="../assets/js/theme.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Métricas de Reações | Qualquer Tecla Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/regular/Phosphor.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/fill/Phosphor-Fill.woff2">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/regular/style.css">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/fill/style.css">
+    <link rel="icon" href="../favicon.ico" sizes="any">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-32x32.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-16x16.png" type="image/png" sizes="16x16">
+    <link rel="apple-touch-icon" href="../assets/img/brand/qt-apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noticia+Text:ital,wght@0,400;0,700;1,400;1,700&family=Bricolage+Grotesque:wght@700;800&family=Genos:wght@700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="../assets/css/style.css?v=20261003pwastrip6">
+    <link rel="stylesheet" href="../assets/css/admin.css?v=20260929">
+</head>
+<body class="admin-page">
+    <div class="admin-shell">
+        <aside id="admin-sidebar"></aside>
+        <main class="admin-content">
+            <header class="admin-page-header">
+                <div class="admin-page-header-copy">
+                    <p class="dashboard-kicker">Painel editorial · <span data-site-brand-name>Qualquer Tecla</span></p>
+                    <h1 class="admin-page-title">Métricas de Reações</h1>
+                    <p class="admin-page-subtitle mb-0">Engajamento dos leitores · fonte oficial Supabase</p>
+                </div>
+            </header>
+
+            <form id="reactions-filter" class="admin-filter-bar admin-filter-bar--standalone" aria-label="Filtrar por período">
+                <div class="admin-filter-fields">
+                    <div class="admin-filter-field admin-filter-field--date">
+                        <label class="admin-filter-label" for="filter-from">De</label>
+                        <input type="date" id="filter-from" class="form-control" autocomplete="off">
+                    </div>
+                    <div class="admin-filter-field admin-filter-field--date">
+                        <label class="admin-filter-label" for="filter-to">Até</label>
+                        <input type="date" id="filter-to" class="form-control" autocomplete="off">
+                    </div>
+                </div>
+                <div class="admin-filter-actions">
+                    <button type="button" class="admin-action admin-action--ghost" id="filter-reset">
+                        Limpar
+                    </button>
+                    <button type="submit" class="admin-action admin-action--primary">
+                        <i class="ph ph-funnel-simple" aria-hidden="true"></i>
+                        <span>Filtrar</span>
+                    </button>
+                </div>
+            </form>
+
+            <p id="reactions-status" class="reactions-status" role="status"></p>
+
+            <section class="dashboard-panel mb-4" aria-labelledby="reactions-summary-heading">
+                <header class="dashboard-panel-head">
+                    <div>
+                        <h2 id="reactions-summary-heading" class="dashboard-panel-title">Resumo</h2>
+                        <p class="dashboard-panel-desc">Totais por tipo de reação</p>
+                    </div>
+                </header>
+                <div class="dashboard-metrics reactions-metrics">
+                    <article class="dashboard-metric">
+                        <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-chart-bar"></i></div>
+                        <div class="dashboard-metric-body">
+                            <p class="dashboard-metric-label">Total</p>
+                            <p class="dashboard-metric-value" id="metric-total"><span class="admin-skeleton admin-skeleton--value admin-skeleton--pulse" aria-hidden="true"></span><span class="visually-hidden">Carregando</span></p>
+                        </div>
+                    </article>
+                    <article class="dashboard-metric">
+                        <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-thumbs-up"></i></div>
+                        <div class="dashboard-metric-body">
+                            <p class="dashboard-metric-label">Gostei</p>
+                            <p class="dashboard-metric-value" id="metric-ace"><span class="admin-skeleton admin-skeleton--value admin-skeleton--pulse" aria-hidden="true"></span><span class="visually-hidden">Carregando</span></p>
+                        </div>
+                    </article>
+                    <article class="dashboard-metric">
+                        <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-heart"></i></div>
+                        <div class="dashboard-metric-body">
+                            <p class="dashboard-metric-label">Amei</p>
+                            <p class="dashboard-metric-value" id="metric-love"><span class="admin-skeleton admin-skeleton--value admin-skeleton--pulse" aria-hidden="true"></span><span class="visually-hidden">Carregando</span></p>
+                        </div>
+                    </article>
+                    <article class="dashboard-metric">
+                        <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-smiley-sad"></i></div>
+                        <div class="dashboard-metric-body">
+                            <p class="dashboard-metric-label">Odiei</p>
+                            <p class="dashboard-metric-value" id="metric-urgh"><span class="admin-skeleton admin-skeleton--value admin-skeleton--pulse" aria-hidden="true"></span><span class="visually-hidden">Carregando</span></p>
+                        </div>
+                    </article>
+                    <article class="dashboard-metric">
+                        <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-sparkle"></i></div>
+                        <div class="dashboard-metric-body">
+                            <p class="dashboard-metric-label">Uau</p>
+                            <p class="dashboard-metric-value" id="metric-omg"><span class="admin-skeleton admin-skeleton--value admin-skeleton--pulse" aria-hidden="true"></span><span class="visually-hidden">Carregando</span></p>
+                        </div>
+                    </article>
+                    <article class="dashboard-metric">
+                        <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-smiley"></i></div>
+                        <div class="dashboard-metric-body">
+                            <p class="dashboard-metric-label">Ri muito</p>
+                            <p class="dashboard-metric-value" id="metric-lol"><span class="admin-skeleton admin-skeleton--value admin-skeleton--pulse" aria-hidden="true"></span><span class="visually-hidden">Carregando</span></p>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <div class="admin-split-grid admin-split-grid--1-2 mb-4">
+                <div class="admin-split-grid__cell">
+                    <div class="admin-card h-100">
+                        <div class="admin-card-header">
+                            <h2 class="dashboard-panel-title">Reação mais escolhida</h2>
+                        </div>
+                        <div class="admin-card-body admin-card-body--padded d-flex align-items-center justify-content-center py-4">
+                            <p class="reactions-top-value" id="metric-top"><span class="admin-skeleton admin-skeleton--md admin-skeleton--pulse" aria-hidden="true"></span><span class="visually-hidden">Carregando</span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="admin-split-grid__cell">
+                    <div class="admin-card h-100">
+                        <div class="admin-card-header">
+                            <h2 class="dashboard-panel-title">Artigos com mais avaliações</h2>
+                        </div>
+                        <div class="admin-card-body">
+                            <div class="table-responsive">
+                                <table class="table admin-table admin-table--stack align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th class="ps-4">Artigo</th>
+                                            <th class="text-end pe-4">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="top-articles-tbody">
+                                        <tr><td colspan="2" class="ps-4 pe-4 py-3"><span class="admin-skeleton admin-skeleton--row admin-skeleton--pulse"></span><span class="admin-skeleton admin-skeleton--row admin-skeleton--pulse"></span><span class="admin-skeleton admin-skeleton--row admin-skeleton--pulse"></span></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="top-articles-empty" class="admin-empty" hidden>
+                                <span class="admin-empty-icon"><i class="ph ph-chart-bar" aria-hidden="true"></i></span>
+                                <span class="admin-empty-title d-block">Nenhuma avaliação no período</span>
+                                <span class="admin-empty-text">Ajuste o filtro de datas ou aguarde novas reações.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="dashboard-panel-title">Distribuição por artigo</h2>
+                </div>
+                <div class="admin-card-body">
+                    <div class="table-responsive">
+                        <table class="table admin-table admin-table--stack align-middle">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">Artigo</th>
+                                    <th>Gostei</th>
+                                    <th>Amei</th>
+                                    <th>Odiei</th>
+                                    <th>Uau</th>
+                                    <th>Ri</th>
+                                    <th class="text-end pe-4">Total</th>
+                                </tr>
+                            </thead>
+                                    <tbody id="articles-tbody">
+                                        <tr><td colspan="7" class="ps-4 pe-4 py-3"><span class="admin-skeleton admin-skeleton--row admin-skeleton--pulse"></span><span class="admin-skeleton admin-skeleton--row admin-skeleton--pulse"></span><span class="admin-skeleton admin-skeleton--row admin-skeleton--pulse"></span><span class="admin-skeleton admin-skeleton--row admin-skeleton--pulse"></span></td></tr>
+                                    </tbody>
+                        </table>
+                    </div>
+                    <div id="articles-empty" class="admin-empty" hidden>
+                        <span class="admin-empty-icon"><i class="ph ph-rows" aria-hidden="true"></i></span>
+                        <span class="admin-empty-title d-block">Nenhuma avaliação no período</span>
+                        <span class="admin-empty-text">Não há distribuição para exibir com o filtro atual.</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>window.SITE_BASE = '../';</script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../config/supabase.js"></script>
+    <script src="../assets/js/utils/html.js?v=20260828inv"></script>
+    <script src="../assets/js/data/reactions.js?v=20260909prod2"></script>
+    <script src="../assets/js/data/mock-data.js?v=20260917spotify1"></script>
+    <script src="../assets/js/admin/auth-stub.js?v=20260826risk"></script>
+    <script src="../assets/js/admin/layout.js?v=20260909brand6"></script>
+    <script>
+        if (!window.AdminAuth.requireAuth()) throw new Error('auth');
+        window.AdminLayout.mountSidebar();
+
+        const statusEl = document.getElementById('reactions-status');
+        const fromEl = document.getElementById('filter-from');
+        const toEl = document.getElementById('filter-to');
+        const store = window.ReactionsStore;
+        const { escapeHtml } = window.HtmlSafe || {
+            escapeHtml: (s) => String(s ?? '')
+        };
+
+        function endOfDayIso(dateStr) {
+            if (!dateStr) return null;
+            return `${dateStr}T23:59:59.999Z`;
+        }
+
+        function startOfDayIso(dateStr) {
+            if (!dateStr) return null;
+            return `${dateStr}T00:00:00.000Z`;
+        }
+
+        function setText(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        }
+
+        function showMetricSkeletons() {
+            ['metric-total', 'metric-ace', 'metric-love', 'metric-urgh', 'metric-omg', 'metric-lol'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.innerHTML =
+                    '<span class="admin-skeleton admin-skeleton--value admin-skeleton--pulse" aria-hidden="true"></span><span class="visually-hidden">Carregando</span>';
+            });
+            const top = document.getElementById('metric-top');
+            if (top) {
+                top.innerHTML =
+                    '<span class="admin-skeleton admin-skeleton--md admin-skeleton--pulse" aria-hidden="true"></span><span class="visually-hidden">Carregando</span>';
+            }
+            const topBody = document.getElementById('top-articles-tbody');
+            const allBody = document.getElementById('articles-tbody');
+            if (topBody) {
+                topBody.innerHTML =
+                    '<tr><td colspan="2" class="ps-4 pe-4 py-3"><span class="admin-skeleton admin-skeleton--row admin-skeleton--pulse"></span><span class="admin-skeleton admin-skeleton--row admin-skeleton--pulse"></span><span class="admin-skeleton admin-skeleton--row admin-skeleton--pulse"></span></td></tr>';
+            }
+            if (allBody) {
+                allBody.innerHTML =
+                    '<tr><td colspan="7" class="ps-4 pe-4 py-3"><span class="admin-skeleton admin-skeleton--row admin-skeleton--pulse"></span><span class="admin-skeleton admin-skeleton--row admin-skeleton--pulse"></span><span class="admin-skeleton admin-skeleton--row admin-skeleton--pulse"></span><span class="admin-skeleton admin-skeleton--row admin-skeleton--pulse"></span></td></tr>';
+            }
+            const topEmpty = document.getElementById('top-articles-empty');
+            const allEmpty = document.getElementById('articles-empty');
+            if (topEmpty) topEmpty.hidden = true;
+            if (allEmpty) allEmpty.hidden = true;
+        }
+
+        function renderArticles(articles) {
+            const topBody = document.getElementById('top-articles-tbody');
+            const allBody = document.getElementById('articles-tbody');
+            const topEmpty = document.getElementById('top-articles-empty');
+            const allEmpty = document.getElementById('articles-empty');
+            const list = Array.isArray(articles) ? articles.slice() : [];
+
+            function revealEmpty(el, show) {
+                if (!el) return;
+                el.hidden = !show;
+                if (show) {
+                    el.classList.remove('admin-animate-in');
+                    void el.offsetWidth;
+                    el.classList.add('is-revealed', 'admin-animate-in');
+                } else {
+                    el.classList.remove('is-revealed', 'admin-animate-in');
+                }
+            }
+
+            topBody.innerHTML = '';
+            allBody.innerHTML = '';
+
+            if (!list.length) {
+                revealEmpty(topEmpty, true);
+                revealEmpty(allEmpty, true);
+                return;
+            }
+
+            revealEmpty(topEmpty, false);
+            revealEmpty(allEmpty, false);
+
+            list.slice(0, 5).forEach((row) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+<td class="ps-4 fw-medium" data-label="Artigo">${escapeHtml(row.article_slug || '—')}</td>
+<td class="text-end pe-4" data-label="Total">${escapeHtml(String(row.total || 0))}</td>`;
+                topBody.appendChild(tr);
+            });
+
+            list.forEach((row) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+<td class="ps-4 fw-medium" data-label="Artigo">${escapeHtml(row.article_slug || '—')}</td>
+<td data-label="Gostei">${escapeHtml(String(row.ace || 0))}</td>
+<td data-label="Amei">${escapeHtml(String(row.love || 0))}</td>
+<td data-label="Odiei">${escapeHtml(String(row.urgh || 0))}</td>
+<td data-label="Uau">${escapeHtml(String(row.omg || 0))}</td>
+<td data-label="Ri">${escapeHtml(String(row.lol || 0))}</td>
+<td class="text-end pe-4 fw-semibold" data-label="Total">${escapeHtml(String(row.total || 0))}</td>`;
+                allBody.appendChild(tr);
+            });
+        }
+
+        async function loadMetrics() {
+            const submitBtn = document.querySelector('#reactions-filter button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('is-loading');
+            }
+
+            try {
+                statusEl.textContent = 'Carregando métricas…';
+                showMetricSkeletons();
+
+                if (!store.isRemoteEnabled()) {
+                    setText('metric-total', '0');
+                    setText('metric-ace', '0');
+                    setText('metric-love', '0');
+                    setText('metric-urgh', '0');
+                    setText('metric-omg', '0');
+                    setText('metric-lol', '0');
+                    setText('metric-top', '—');
+                    renderArticles([]);
+                    statusEl.textContent =
+                        'Supabase não configurado. Configure a URL e a anon key em config/supabase.js e execute db/article_reactions.sql.';
+                    return;
+                }
+
+                const metrics = await store.getMetrics({
+                    from: startOfDayIso(fromEl.value),
+                    to: endOfDayIso(toEl.value)
+                });
+
+                if (metrics.error || metrics.source === 'error') {
+                    statusEl.textContent =
+                        'Não foi possível carregar as métricas. Verifique a conexão e se a migration db/article_reactions.sql foi aplicada.';
+                    return;
+                }
+
+                const counts = metrics.counts || {};
+                setText('metric-total', String(metrics.total || 0));
+                setText('metric-ace', String(counts.ace || 0));
+                setText('metric-love', String(counts.love || 0));
+                setText('metric-urgh', String(counts.urgh || 0));
+                setText('metric-omg', String(counts.omg || 0));
+                setText('metric-lol', String(counts.lol || 0));
+                setText(
+                    'metric-top',
+                    metrics.top_reaction ? store.labelFor(metrics.top_reaction) : '—'
+                );
+                renderArticles(metrics.articles || []);
+
+                const period =
+                    fromEl.value || toEl.value
+                        ? `Período filtrado${fromEl.value ? ' de ' + fromEl.value : ''}${toEl.value ? ' até ' + toEl.value : ''}.`
+                        : 'Todos os períodos.';
+                statusEl.textContent = `${period} Dados sincronizados com o Supabase.`;
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('is-loading');
+                }
+            }
+        }
+
+        document.getElementById('reactions-filter').addEventListener('submit', (e) => {
+            e.preventDefault();
+            loadMetrics();
+        });
+
+        document.getElementById('filter-reset').addEventListener('click', () => {
+            fromEl.value = '';
+            toEl.value = '';
+            loadMetrics();
+        });
+
+        loadMetrics();
+    </script>
+</body>
+</html>

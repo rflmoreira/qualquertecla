@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <script>!function(){try{var t=localStorage.getItem("qualquer-tecla-theme");document.documentElement.setAttribute("data-theme",t==="dark"||t==="light"?t:"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}}();</script>
+    <script src="../assets/js/theme.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Qualquer Tecla | Acesso Editorial</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/regular/Phosphor.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/fill/Phosphor-Fill.woff2">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/regular/style.css">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/fill/style.css">
+    <link rel="icon" href="../favicon.ico" sizes="any">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-32x32.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-16x16.png" type="image/png" sizes="16x16">
+    <link rel="apple-touch-icon" href="../assets/img/brand/qt-apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noticia+Text:ital,wght@0,400;0,700;1,400;1,700&family=Bricolage+Grotesque:wght@700;800&family=Genos:wght@700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="../assets/css/style.css?v=20261003pwastrip6">
+    <link rel="stylesheet" href="../assets/css/admin.css?v=20260929">
+</head>
+<body class="admin-login-page">
+    <div class="login-bg" aria-hidden="true">
+        <div class="login-bg__image"></div>
+        <div class="login-bg__image login-bg__image--next"></div>
+        <div class="login-bg__scrim"></div>
+    </div>
+    <div class="admin-login-atmosphere" aria-hidden="true"></div>
+    <div class="login-box">
+        <div class="login-box__inner">
+            <div class="login-brand login-stage" style="--login-stage: 0">
+                <div class="logo login-brand-logo" id="loginBrand" role="img" aria-label="Qualquer Tecla">
+                    <span class="main-header-logo-keycap" aria-hidden="true" data-keycap-texture="../assets/img/brand/qt-keycap-top.png?v=20260920canonical">
+                        <img class="qt-keycap-fallback" src="../assets/img/brand/qt-keycap-fallback.png?v=20260920canonical" alt="" width="64" height="64" decoding="async">
+                        <canvas class="qt-keycap-canvas" aria-hidden="true"></canvas>
+                    </span>
+                    <span class="qt-footer-wordmark" aria-hidden="true">
+                        <span class="brand-word brand-word--lead">QUALQUER</span><span class="brand-word brand-word--mark">TECLA</span>
+                    </span>
+                    <span class="visually-hidden">Qualquer Tecla</span>
+                </div>
+            </div>
+            <p class="login-eyebrow login-stage" style="--login-stage: 1">Acesso Editorial</p>
+            <form class="login-form" id="loginForm" novalidate>
+                <div class="login-field login-stage" style="--login-stage: 2">
+                    <label class="admin-field-label" for="email">E-mail corporativo</label>
+                    <input type="email" class="form-control login-input" id="email" required placeholder="nome@qualquertecla.com.br" autocomplete="username">
+                </div>
+                <div class="login-field login-stage" style="--login-stage: 3">
+                    <label class="admin-field-label" for="password">Senha</label>
+                    <input type="password" class="form-control login-input" id="password" required autocomplete="current-password" minlength="4">
+                </div>
+                <button type="submit" class="admin-action admin-action--primary login-submit login-stage" style="--login-stage: 4" id="loginBtn">
+                    <span class="login-submit-label">Entrar</span>
+                </button>
+            </form>
+            <div class="login-error" id="loginError" role="alert"></div>
+            <div class="login-publisher login-stage" style="--login-stage: 5">
+                <div class="qt-footer-publisher">
+                    <img class="qt-footer-alt42" src="../assets/img/brand/alt42-wordmark-inverse.png?v=20260908alt42t" alt="" width="148" height="53" decoding="async" aria-hidden="true">
+                    <p class="qt-footer-publisher-label">Publicado por ALT42</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="login-bg-credit article-source-line" id="loginBgCredit" hidden></p>
+    <button type="button" class="login-bg-toggle" id="loginBgToggle" aria-expanded="false" aria-controls="loginBgPanel" aria-haspopup="dialog" title="Alterar fundo" aria-label="Alterar fundo">
+        <i class="ph ph-pencil-simple" aria-hidden="true"></i>
+    </button>
+    <div class="login-bg-overlay" id="loginBgOverlay" hidden>
+        <div class="login-bg-panel" id="loginBgPanel" role="dialog" aria-modal="true" aria-labelledby="loginBgPanelTitle" aria-busy="false" tabindex="-1">
+            <div class="login-bg-panel-header">
+                <div class="login-bg-panel-heading">
+                    <h2 class="login-bg-panel-title" id="loginBgPanelTitle">Alterar fundo</h2>
+                </div>
+                <button type="button" class="login-bg-panel-close" id="loginBgClose" aria-label="Fechar">
+                    <i class="ph ph-x" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="login-bg-main">
+                <div class="login-bg-main-body">
+                    <div class="login-bg-sources" role="radiogroup" aria-labelledby="loginBgSourcesLabel">
+                        <h3 class="login-bg-group-label" id="loginBgSourcesLabel">Fonte</h3>
+
+                        <section class="login-bg-source is-selected" data-login-bg-for="imageUrl" data-login-bg-mode="imageUrl">
+                            <label class="login-bg-source__row">
+                                <input type="radio" name="loginBgMode" value="imageUrl" checked>
+                                <span class="login-bg-source__copy">
+                                    <span class="login-bg-source__title" id="loginBgUrlHeading">Imagem URL</span>
+                                    <span class="login-bg-source__desc">Imagem a partir de um URL</span>
+                                </span>
+                            </label>
+                            <div class="login-bg-source__fields">
+                                <div>
+                                    <label class="admin-field-label" for="loginBgImageUrl">URL da imagem</label>
+                                    <input type="url" class="form-control" id="loginBgImageUrl" value="https://images.unsplash.com/photo-1618519764620-7403abdbdfe9?q=80&amp;w=2340&amp;auto=format&amp;fit=crop&amp;ixlib=rb-4.1.0&amp;ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" placeholder="https://" autocomplete="off" inputmode="url">
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="login-bg-source" data-login-bg-for="unsplash" data-login-bg-mode="unsplash">
+                            <label class="login-bg-source__row">
+                                <input type="radio" name="loginBgMode" value="unsplash">
+                                <span class="login-bg-source__copy">
+                                    <span class="login-bg-source__title" id="loginBgUnsplashHeading">Unsplash</span>
+                                    <span class="login-bg-source__desc">Imagem aleatória da coleção Unsplash</span>
+                                </span>
+                            </label>
+                            <div class="login-bg-source__fields">
+                                <div class="login-bg-fields-stack">
+                                    <div>
+                                        <label class="admin-field-label" for="loginBgCollection">Coleção Unsplash</label>
+                                        <input type="text" class="form-control" id="loginBgCollection" placeholder="56636246" autocomplete="off" inputmode="numeric">
+                                        <p class="login-bg-field-hint">ID da coleção. Encontrado no URL, exemplo: 42576559</p>
+                                    </div>
+                                    <div>
+                                        <label class="admin-field-label" for="loginBgRefresh">Mostrar uma foto nova</label>
+                                        <select class="form-select" id="loginBgRefresh">
+                                            <option value="every_open">A cada visita</option>
+                                            <option value="hourly" selected>Toda hora</option>
+                                            <option value="daily">Todo dia</option>
+                                            <option value="never">Manter a atual</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <section class="login-bg-section login-bg-adjust" id="loginBgAdjustSection" aria-labelledby="loginBgAdjustHeading" aria-disabled="false">
+                        <h3 class="login-bg-group-label" id="loginBgAdjustHeading">Ajuste da imagem</h3>
+                        <p class="login-bg-adjust-note">Disponível com Imagem URL ou Unsplash</p>
+                        <div class="login-bg-fields login-bg-fields--sliders">
+                            <div class="login-bg-slider" data-login-bg-slider data-unit="%">
+                                <div class="login-bg-slider__head">
+                                    <label class="admin-field-label" for="loginBgBrightDark">Brilho: Escuro</label>
+                                    <output class="login-bg-slider__value" id="loginBgBrightDarkValue" for="loginBgBrightDark">100%</output>
+                                </div>
+                                <div class="login-bg-slider__rail">
+                                    <input type="range" class="login-bg-range" id="loginBgBrightDark" min="70" max="100" step="1" value="100" aria-valuetext="100%">
+                                    <div class="login-bg-slider__ticks">
+                                        <button type="button" class="login-bg-tick" data-preset="70" style="--tick: 0" aria-label="70%" tabindex="-1"></button>
+                                        <button type="button" class="login-bg-tick" data-preset="80" style="--tick: 0.333333" aria-label="80%" tabindex="-1"></button>
+                                        <button type="button" class="login-bg-tick" data-preset="90" style="--tick: 0.666667" aria-label="90%" tabindex="-1"></button>
+                                        <button type="button" class="login-bg-tick" data-preset="100" style="--tick: 1" aria-label="100%" tabindex="-1"></button>
+                                    </div>
+                                    <div class="login-bg-slider__marks" aria-hidden="true">
+                                        <span style="--tick: 0">70</span>
+                                        <span style="--tick: 0.333333">80</span>
+                                        <span style="--tick: 0.666667">90</span>
+                                        <span style="--tick: 1">100</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="login-bg-slider" data-login-bg-slider data-unit="%">
+                                <div class="login-bg-slider__head">
+                                    <label class="admin-field-label" for="loginBgBrightLight">Brilho: Claro</label>
+                                    <output class="login-bg-slider__value" id="loginBgBrightLightValue" for="loginBgBrightLight">80%</output>
+                                </div>
+                                <div class="login-bg-slider__rail">
+                                    <input type="range" class="login-bg-range" id="loginBgBrightLight" min="70" max="100" step="1" value="80" aria-valuetext="80%">
+                                    <div class="login-bg-slider__ticks">
+                                        <button type="button" class="login-bg-tick" data-preset="70" style="--tick: 0" aria-label="70%" tabindex="-1"></button>
+                                        <button type="button" class="login-bg-tick" data-preset="80" style="--tick: 0.333333" aria-label="80%" tabindex="-1"></button>
+                                        <button type="button" class="login-bg-tick" data-preset="90" style="--tick: 0.666667" aria-label="90%" tabindex="-1"></button>
+                                        <button type="button" class="login-bg-tick" data-preset="100" style="--tick: 1" aria-label="100%" tabindex="-1"></button>
+                                    </div>
+                                    <div class="login-bg-slider__marks" aria-hidden="true">
+                                        <span style="--tick: 0">70</span>
+                                        <span style="--tick: 0.333333">80</span>
+                                        <span style="--tick: 0.666667">90</span>
+                                        <span style="--tick: 1">100</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="login-bg-slider" data-login-bg-slider data-unit="px">
+                                <div class="login-bg-slider__head">
+                                    <label class="admin-field-label" for="loginBgBlur">Desfoque</label>
+                                    <output class="login-bg-slider__value" id="loginBgBlurValue" for="loginBgBlur">0px</output>
+                                </div>
+                                <div class="login-bg-slider__rail">
+                                    <input type="range" class="login-bg-range" id="loginBgBlur" min="0" max="16" step="1" value="0" aria-valuetext="0px">
+                                    <div class="login-bg-slider__ticks">
+                                        <button type="button" class="login-bg-tick" data-preset="0" style="--tick: 0" aria-label="0px" tabindex="-1"></button>
+                                        <button type="button" class="login-bg-tick" data-preset="4" style="--tick: 0.25" aria-label="4px" tabindex="-1"></button>
+                                        <button type="button" class="login-bg-tick" data-preset="8" style="--tick: 0.5" aria-label="8px" tabindex="-1"></button>
+                                        <button type="button" class="login-bg-tick" data-preset="12" style="--tick: 0.75" aria-label="12px" tabindex="-1"></button>
+                                        <button type="button" class="login-bg-tick" data-preset="16" style="--tick: 1" aria-label="16px" tabindex="-1"></button>
+                                    </div>
+                                    <div class="login-bg-slider__marks" aria-hidden="true">
+                                        <span style="--tick: 0">0</span>
+                                        <span style="--tick: 0.25">4</span>
+                                        <span style="--tick: 0.5">8</span>
+                                        <span style="--tick: 0.75">12</span>
+                                        <span style="--tick: 1">16</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="login-bg-main-footer">
+                    <div class="login-bg-actions">
+                        <button type="button" class="admin-action admin-action--primary" id="loginBgApply">
+                            <span>Aplicar</span>
+                        </button>
+                        <button type="button" class="admin-action login-bg-reset" id="loginBgUseSiteDefault">
+                            <span>Restaurar configurações originais</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>window.SITE_BASE = '../';</script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../config/supabase.js"></script>
+    <script src="../assets/js/data/mock-data.js?v=20260917spotify1"></script>
+    <script src="../assets/js/admin/login-background.js?v=20260909loginbg22"></script>
+    <script src="../assets/js/keycap-logo.js?v=20260920canonical" defer></script>
+    <script src="../assets/js/admin/auth-stub.js?v=20260826dash"></script>
+    <script>
+        if (window.LoginBackground && typeof window.LoginBackground.bindLoginPage === 'function') {
+            window.LoginBackground.bindLoginPage(document.body);
+        }
+    </script>
+    <script>
+        (function applyLoginBrand() {
+            function toBrandTitleCase(name) {
+                const raw = String(name || '').trim();
+                if (!raw) return '';
+                return raw
+                    .toLocaleLowerCase('pt-BR')
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .map(function (word) {
+                        return word.charAt(0).toLocaleUpperCase('pt-BR') + word.slice(1);
+                    })
+                    .join(' ');
+            }
+
+            function esc(s) {
+                return String(s)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            function syncWordmark(brand, name) {
+                const words = toBrandTitleCase(name || 'Qualquer Tecla').split(/\s+/).filter(Boolean);
+                let lead = 'QUALQUER';
+                let mark = 'TECLA';
+                if (words.length >= 2) {
+                    lead = words.slice(0, -1).join(' ').toLocaleUpperCase('pt-BR');
+                    mark = words[words.length - 1].toLocaleUpperCase('pt-BR');
+                } else if (words.length === 1) {
+                    lead = '';
+                    mark = words[0].toLocaleUpperCase('pt-BR');
+                }
+                const wm = brand.querySelector('.qt-footer-wordmark');
+                if (!wm) return;
+                wm.innerHTML =
+                    (lead
+                        ? '<span class="brand-word brand-word--lead">' + esc(lead) + '</span>'
+                        : '') +
+                    '<span class="brand-word brand-word--mark">' +
+                    esc(mark) +
+                    '</span>';
+            }
+
+            var prose = 'Qualquer Tecla';
+            try {
+                if (window.MockData && typeof window.MockData.getSiteSettings === 'function') {
+                    prose = String(window.MockData.getSiteSettings().siteName || prose).trim() || prose;
+                }
+            } catch (_) {
+                /* ignore */
+            }
+
+            prose = toBrandTitleCase(prose) || 'Qualquer Tecla';
+
+            var brand = document.getElementById('loginBrand');
+            if (brand) {
+                syncWordmark(brand, prose);
+                brand.setAttribute('aria-label', prose);
+                var hidden = brand.querySelector('.visually-hidden');
+                if (hidden) hidden.textContent = prose;
+            }
+            document.title = prose + ' | Acesso Editorial';
+
+            function bindKeycap() {
+                if (window.KeycapLogo && typeof window.KeycapLogo.bind === 'function') {
+                    window.KeycapLogo.bind(document);
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', bindKeycap);
+            } else {
+                bindKeycap();
+            }
+        })();
+
+        function goDashboard() {
+            window.location.href =
+                window.AdminAuth && window.AdminAuth.adminDashboardUrl
+                    ? window.AdminAuth.adminDashboardUrl()
+                    : '/admin/dashboard.html';
+        }
+
+        if (window.AdminAuth && window.AdminAuth.isLoggedIn()) {
+            goDashboard();
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const emailEl = document.getElementById('email');
+            const passwordEl = document.getElementById('password');
+            const email = emailEl.value.trim();
+            const password = passwordEl.value;
+            const errorDiv = document.getElementById('loginError');
+            const btn = document.getElementById('loginBtn');
+            const label = btn.querySelector('.login-submit-label') || btn;
+            const prevLabel = label.textContent;
+            errorDiv.textContent = '';
+            errorDiv.className = 'login-error';
+            btn.disabled = true;
+            btn.classList.add('is-loading');
+            btn.setAttribute('aria-busy', 'true');
+            label.textContent = 'Autenticando...';
+            try {
+                await window.AdminAuth.login(email, password);
+                goDashboard();
+            } catch (err) {
+                errorDiv.className = 'login-error login-error--active admin-alert admin-alert--error';
+                errorDiv.textContent = err.message || 'Falha no login.';
+                btn.disabled = false;
+                btn.classList.remove('is-loading');
+                btn.removeAttribute('aria-busy');
+                label.textContent = prevLabel || 'Entrar';
+                const focusEl = !email ? emailEl : passwordEl;
+                focusEl?.focus();
+            }
+        });
+    </script>
+</body>
+</html>

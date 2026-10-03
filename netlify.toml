@@ -1,0 +1,148 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+[functions."noticia-seo"]
+  included_files = ["noticia.html", "assets/js/data/mock-data.js"]
+
+[functions."categoria-seo"]
+  included_files = ["categoria.html", "assets/js/data/mock-data.js"]
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data: blob: https:; media-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://*.disqus.com https://*.disquscdn.com; connect-src 'self' https://cdn.jsdelivr.net https://*.supabase.co wss://*.supabase.co https://*.disqus.com https://*.disquscdn.com; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://inv.nadeko.net https://player.vimeo.com https://platform.twitter.com https://www.instagram.com https://www.facebook.com https://www.tiktok.com https://open.spotify.com https://embed.reddit.com https://www.redditmedia.com https://*.disqus.com https://*.disquscdn.com; worker-src 'self' blob:; upgrade-insecure-requests"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/api/google-images/*"
+  [headers.values]
+    Access-Control-Allow-Methods = "GET, OPTIONS"
+    Access-Control-Allow-Headers = "Accept, Content-Type, Authorization"
+
+[[headers]]
+  for = "/api/unsplash/*"
+  [headers.values]
+    Access-Control-Allow-Methods = "GET, OPTIONS"
+    Access-Control-Allow-Headers = "Accept, Content-Type"
+
+[[headers]]
+  for = "/api/ai-summary"
+  [headers.values]
+    Access-Control-Allow-Methods = "POST, OPTIONS"
+    Access-Control-Allow-Headers = "Accept, Content-Type, Authorization"
+
+[[headers]]
+  for = "/api/article-audio"
+  [headers.values]
+    Access-Control-Allow-Methods = "GET, OPTIONS"
+    Access-Control-Allow-Headers = "Accept, Content-Type"
+
+[[headers]]
+  for = "/api/article-audio/*"
+  [headers.values]
+    Access-Control-Allow-Methods = "POST, OPTIONS"
+    Access-Control-Allow-Headers = "Accept, Content-Type, Authorization"
+
+# Admin servido em produção temporariamente, a pedido, até Supabase Auth existir.
+# O gate atual (assets/js/admin/auth-stub.js) é client-side e contornável — se a
+# ativação do Supabase for postergada, restaurar os 404 force de /admin, /admin/,
+# /admin/* e /admin.html.
+
+# Bloqueia exposição acidental de segredos e código interno no publish estático
+[[redirects]]
+  from = "/config/serper.key"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/*.key"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/*.pem"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/*.secret"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/.env"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/.env.*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/scripts/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/db/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/netlify/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+# Diretório de cache local usado em desenvolvimento. Nunca deve ser servido.
+[[redirects]]
+  from = "/.cache/*"
+  to = "/404.html"
+  status = 404
+  force = true

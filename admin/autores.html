@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <script>!function(){try{var t=localStorage.getItem("qualquer-tecla-theme");document.documentElement.setAttribute("data-theme",t==="dark"||t==="light"?t:"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}}();</script>
+    <script src="../assets/js/theme.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Autores | Qualquer Tecla Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/regular/Phosphor.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/fill/Phosphor-Fill.woff2">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/regular/style.css">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/fill/style.css">
+    <link rel="icon" href="../favicon.ico" sizes="any">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-32x32.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-16x16.png" type="image/png" sizes="16x16">
+    <link rel="apple-touch-icon" href="../assets/img/brand/qt-apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noticia+Text:ital,wght@0,400;0,700;1,400;1,700&family=Bricolage+Grotesque:wght@700;800&family=Genos:wght@700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="../assets/css/style.css?v=20261003pwastrip6">
+    <link rel="stylesheet" href="../assets/css/admin.css?v=20260929">
+</head>
+<body class="admin-page">
+    <div class="admin-shell">
+        <aside id="admin-sidebar"></aside>
+        <main class="admin-content">
+            <header class="admin-page-header">
+                <div class="admin-page-header-copy">
+                    <p class="dashboard-kicker">Painel editorial · <span data-site-brand-name>Qualquer Tecla</span></p>
+                    <h1 class="admin-page-title">Autores</h1>
+                    <p class="admin-page-subtitle">Nome, foto e bio são salvos nesta sessão e refletem automaticamente nas notícias do site.</p>
+                </div>
+                <div class="admin-page-actions">
+                    <button type="button" class="admin-action admin-action--primary" id="btnNewAuthor">
+                        <i class="ph ph-plus" aria-hidden="true"></i>
+                        <span>Novo autor</span>
+                    </button>
+                </div>
+            </header>
+            <div class="row g-3" id="authors-grid"></div>
+            <div id="authors-empty" class="admin-empty" hidden>
+                <span class="admin-empty-icon"><i class="ph ph-users" aria-hidden="true"></i></span>
+                <span class="admin-empty-title">Nenhum autor</span>
+                <span class="admin-empty-text">Cadastre o primeiro autor para assinar as matérias.</span>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal fade" id="authorModal" tabindex="-1" aria-labelledby="authorModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+            <form class="modal-content" id="authorForm">
+                <div class="modal-header">
+                    <div class="admin-modal-heading">
+                        <h2 class="modal-title" id="authorModalTitle">Editar autor</h2>
+                    </div>
+                    <button type="button" class="admin-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
+                        <i class="ph ph-x" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="modal-body admin-modal-body">
+                    <input type="hidden" id="authorId">
+                    <div class="text-center">
+                        <div class="author-admin-preview mx-auto mb-3">
+                            <img id="authorPreview" src="../assets/img/authors/avatar-default.svg" alt="Pré-visualização do avatar" width="96" height="96">
+                        </div>
+                        <div class="d-flex flex-wrap justify-content-center gap-2">
+                            <label class="admin-action admin-action--ghost mb-0" for="authorFile">
+                                <i class="ph ph-image" aria-hidden="true"></i>
+                                <span>Selecionar foto</span>
+                            </label>
+                            <input type="file" id="authorFile" accept="image/*" class="visually-hidden">
+                            <button type="button" class="admin-action admin-action--ghost" id="authorClearPhoto">
+                                <span>Usar padrão</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="admin-field-label" for="authorName">Nome do autor</label>
+                        <input type="text" class="form-control" id="authorName" required maxlength="80" autocomplete="name">
+                    </div>
+                    <div>
+                        <label class="admin-field-label" for="authorSlug">Slug</label>
+                        <input type="text" class="form-control" id="authorSlug" maxlength="80" placeholder="gerado a partir do nome">
+                    </div>
+                    <div>
+                        <label class="admin-field-label" for="authorBio">Bio / descrição</label>
+                        <textarea class="form-control" id="authorBio" rows="3" maxlength="400" placeholder="Texto curto sobre o autor, área de atuação e especialidade"></textarea>
+                        <p class="admin-field-hint mb-0">Exibida no final das matérias. Se vazia, o site usa um texto padrão.</p>
+                    </div>
+                    <fieldset class="author-social-fieldset">
+                        <legend class="admin-field-label">Redes sociais</legend>
+                        <p class="admin-field-hint">Exibidas no bloco “Sobre o autor” das matérias. Deixe em branco para ocultar a rede.</p>
+                        <div class="author-social-fields" id="authorSocialFields"></div>
+                    </fieldset>
+                    <div>
+                        <label class="admin-field-label" for="authorAvatarUrl">URL da foto (opcional)</label>
+                        <input type="url" class="form-control" id="authorAvatarUrl" placeholder="https://… ou caminho local">
+                        <p class="admin-field-hint mb-0">Você pode colar uma URL ou escolher um arquivo acima (salvo como data URL no protótipo).</p>
+                    </div>
+                    <p class="admin-alert admin-alert--error mb-0" id="authorFormError" hidden role="alert"></p>
+                </div>
+                <div class="modal-footer admin-modal-footer">
+                    <button type="button" class="admin-action admin-action--ghost" data-bs-dismiss="modal">
+                        <span>Cancelar</span>
+                    </button>
+                    <button type="submit" class="admin-action admin-action--primary" aria-label="Salvar autor">
+                        <span>Salvar</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>window.SITE_BASE = '../';</script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../config/supabase.js"></script>
+    <script src="../assets/js/data/mock-data.js?v=20260917spotify1"></script>
+    <script src="../assets/js/api.js?v=20260831support1"></script>
+    <script src="../assets/js/admin/auth-stub.js?v=20260826risk"></script>
+    <script src="../assets/js/admin/layout.js?v=20260909brand6"></script>
+    <script>
+        if (!window.AdminAuth.requireAuth()) throw new Error('auth');
+        window.AdminLayout.mountSidebar();
+
+        const grid = document.getElementById('authors-grid');
+        const form = document.getElementById('authorForm');
+        const modalEl = document.getElementById('authorModal');
+        const modal = new bootstrap.Modal(modalEl);
+        const preview = document.getElementById('authorPreview');
+        const nameInput = document.getElementById('authorName');
+        const slugInput = document.getElementById('authorSlug');
+        const bioInput = document.getElementById('authorBio');
+        const urlInput = document.getElementById('authorAvatarUrl');
+        const idInput = document.getElementById('authorId');
+        const fileInput = document.getElementById('authorFile');
+        const errorEl = document.getElementById('authorFormError');
+        const titleEl = document.getElementById('authorModalTitle');
+        const socialFieldsEl = document.getElementById('authorSocialFields');
+        const defaultAvatar = window.MockData ? window.MockData.assetPath(window.MockData.DEFAULT_AVATAR) : '../assets/img/authors/avatar-default.svg';
+        const socialPresets = window.MockData ? (window.MockData.AUTHOR_SOCIAL_PRESETS || []) : [];
+        let allAuthors = [];
+
+        function showAuthorError(msg) {
+            errorEl.textContent = msg;
+            errorEl.hidden = false;
+            errorEl.classList.remove('admin-animate-in');
+            void errorEl.offsetWidth;
+            errorEl.classList.add('is-revealed', 'admin-animate-in');
+        }
+
+        let pendingAvatar = '';
+
+        function avatarSrc(path) {
+            return window.MockData ? window.MockData.assetPath(path || window.MockData.DEFAULT_AVATAR) : (path || defaultAvatar);
+        }
+
+        function renderAuthors() {
+            grid.innerHTML = '';
+            const emptyEl = document.getElementById('authors-empty');
+            if (emptyEl) {
+                emptyEl.hidden = allAuthors.length > 0;
+                if (allAuthors.length > 0) {
+                    emptyEl.classList.remove('is-revealed', 'admin-animate-in');
+                } else {
+                    emptyEl.classList.remove('admin-animate-in');
+                    void emptyEl.offsetWidth;
+                    emptyEl.classList.add('is-revealed', 'admin-animate-in');
+                }
+            }
+            allAuthors.forEach((a) => {
+                const author = window.MockData ? window.MockData.normalizeAuthor(a) : a;
+                const col = document.createElement('div');
+                col.className = 'col-md-6 col-xl-4';
+                col.innerHTML = `
+<div class="admin-card author-admin-card h-100">
+  <div class="admin-card-body admin-card-body--padded author-admin-card-body">
+    <img class="author-admin-thumb" src="" alt="" width="56" height="56">
+    <div class="author-admin-card-copy">
+      <h2 class="author-admin-name"></h2>
+      <p class="author-admin-slug"></p>
+      <p class="author-admin-bio"></p>
+    </div>
+    <button type="button" class="admin-btn-icon author-edit-btn" aria-label="Editar autor">
+      <i class="ph ph-pencil-simple" aria-hidden="true"></i>
+    </button>
+  </div>
+</div>`;
+                const img = col.querySelector('img');
+                img.src = avatarSrc(author.avatar);
+                img.alt = author.name;
+                img.onerror = () => {
+                    img.onerror = null;
+                    img.src = defaultAvatar;
+                };
+                col.querySelector('.author-admin-name').textContent = author.name;
+                col.querySelector('.author-admin-slug').textContent = '@' + author.slug;
+                const bioEl = col.querySelector('.author-admin-bio');
+                const bioPreview = String(a.bio || '').trim();
+                bioEl.textContent = bioPreview || 'Sem bio cadastrada';
+                if (!bioPreview) bioEl.classList.add('is-empty');
+                const socialCount = (author.socialLinks || []).length;
+                if (socialCount) {
+                    const socialMeta = document.createElement('p');
+                    socialMeta.className = 'author-admin-socials-meta';
+                    socialMeta.textContent =
+                        socialCount === 1
+                            ? '1 rede social'
+                            : socialCount + ' redes sociais';
+                    col.querySelector('.author-admin-card-copy').appendChild(socialMeta);
+                }
+                col.querySelector('.author-edit-btn').addEventListener('click', () => openEditor(author));
+                grid.appendChild(col);
+            });
+        }
+
+        function buildSocialFields() {
+            const container = document.getElementById('authorSocialFields');
+            if (!container) return;
+            container.innerHTML = '';
+            socialPresets.forEach((net) => {
+                const row = document.createElement('div');
+                row.className = 'row g-3 align-items-center mb-2';
+                row.innerHTML = `
+<div class="col-4 col-sm-3 text-end">
+  <label class="col-form-label admin-field-label p-0">${net.label}</label>
+</div>
+<div class="col-8 col-sm-9">
+  <input type="url" class="form-control" data-social-net="${net.network}" placeholder="URL do perfil">
+</div>`;
+                container.appendChild(row);
+            });
+        }
+
+        function fillSocialFields(links) {
+            const container = document.getElementById('authorSocialFields');
+            if (!container) return;
+            const inputs = container.querySelectorAll('input[data-social-net]');
+            inputs.forEach((inp) => (inp.value = ''));
+            if (!Array.isArray(links)) return;
+            links.forEach((l) => {
+                const inp = container.querySelector(`input[data-social-net="${l.network}"]`);
+                if (inp) inp.value = l.url;
+            });
+        }
+
+        function readSocialLinksFromForm() {
+            const container = document.getElementById('authorSocialFields');
+            if (!container) return [];
+            const links = [];
+            const inputs = container.querySelectorAll('input[data-social-net]');
+            inputs.forEach((inp) => {
+                const url = inp.value.trim();
+                if (url) {
+                    links.push({
+                        network: inp.getAttribute('data-social-net'),
+                        url
+                    });
+                }
+            });
+            return links;
+        }
+
+        function openEditor(author) {
+            errorEl.hidden = true;
+            const isNew = !author;
+            titleEl.textContent = isNew ? 'Novo autor' : 'Editar autor';
+            idInput.value = author ? author.id : '';
+            nameInput.value = author ? author.name : '';
+            slugInput.value = author ? author.slug : '';
+            if (author) {
+                const stored = allAuthors.find((a) => a.id === author.id);
+                bioInput.value = stored && stored.bio ? String(stored.bio) : '';
+                fillSocialFields(
+                    author.socialLinks ||
+                        (stored && (stored.socialLinks || stored.social_links)) ||
+                        []
+                );
+            } else {
+                bioInput.value = '';
+                fillSocialFields([]);
+            }
+            pendingAvatar = author ? author.avatar || '' : '';
+            urlInput.value =
+                pendingAvatar && !String(pendingAvatar).startsWith('data:') ? pendingAvatar : '';
+            preview.src = avatarSrc(pendingAvatar || defaultAvatar);
+            fileInput.value = '';
+            modal.show();
+        }
+
+        document.getElementById('btnNewAuthor').addEventListener('click', () => openEditor(null));
+
+        function openFromQuery() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const editId = String(params.get('edit') || '').trim();
+                if (!editId) return;
+                const author = allAuthors.find((a) => String(a.id) === editId);
+                if (author) {
+                    openEditor(window.MockData ? window.MockData.normalizeAuthor(author) : author);
+                    if (window.history && window.history.replaceState) {
+                        window.history.replaceState({}, '', 'autores.html');
+                    }
+                }
+            } catch (_) {
+                /* ignore */
+            }
+        }
+
+        nameInput.addEventListener('input', () => {
+            if (!idInput.value && window.MockData) {
+                slugInput.value = window.MockData.slugifyAuthor(nameInput.value);
+            }
+        });
+
+        urlInput.addEventListener('change', () => {
+            const val = urlInput.value.trim();
+            if (val) {
+                pendingAvatar = val;
+                preview.src = avatarSrc(val);
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                showAuthorError('Selecione um arquivo de imagem.');
+                return;
+            }
+            if (file.size > 1.5 * 1024 * 1024) {
+                showAuthorError('Imagem muito grande (máx. ~1,5 MB no protótipo).');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+                pendingAvatar = String(reader.result || '');
+                urlInput.value = '';
+                preview.src = pendingAvatar;
+                errorEl.hidden = true;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('authorClearPhoto').addEventListener('click', () => {
+            pendingAvatar = window.MockData ? window.MockData.DEFAULT_AVATAR : '';
+            urlInput.value = '';
+            fileInput.value = '';
+            preview.src = defaultAvatar;
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorEl.hidden = true;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+            try {
+                const avatar =
+                    pendingAvatar ||
+                    urlInput.value.trim() ||
+                    (window.MockData ? window.MockData.DEFAULT_AVATAR : '');
+                const socialLinks = readSocialLinksFromForm();
+                if (window.MockData) {
+                    for (const item of socialLinks) {
+                        if (!window.MockData.isValidSocialUrl(item.url)) {
+                            throw new Error('URL inválida em redes sociais. Use http:// ou https://.');
+                        }
+                    }
+                }
+                await window.API.upsertAuthor({
+                    id: idInput.value || undefined,
+                    name: nameInput.value,
+                    slug: slugInput.value,
+                    avatar,
+                    bio: bioInput.value,
+                    socialLinks
+                });
+                modal.hide();
+                await fetchAll();
+            } catch (err) {
+                showAuthorError(err.message || 'Não foi possível salvar.');
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        });
+
+        async function fetchAll() {
+            grid.innerHTML = '<div class="col-12 text-center py-5 text-secondary"><i class="ph ph-spinner ph-spin fs-4"></i><div class="mt-2">Carregando autores...</div></div>';
+            const emptyEl = document.getElementById('authors-empty');
+            if (emptyEl) emptyEl.hidden = true;
+            try {
+                allAuthors = await window.API.getAllAuthors();
+                renderAuthors();
+                openFromQuery();
+            } catch (err) {
+                console.error(err);
+                grid.innerHTML = '<div class="col-12 text-center py-5 text-danger"><i class="ph ph-warning-circle fs-4"></i><div class="mt-2">Erro ao carregar autores.</div></div>';
+            }
+        }
+
+        buildSocialFields();
+        fetchAll();
+    </script>
+</body>
+</html>

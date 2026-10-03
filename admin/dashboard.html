@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <script>!function(){try{var t=localStorage.getItem("qualquer-tecla-theme");document.documentElement.setAttribute("data-theme",t==="dark"||t==="light"?t:"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}}();</script>
+    <script src="../assets/js/theme.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Dashboard | Qualquer Tecla Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/regular/Phosphor.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/fill/Phosphor-Fill.woff2">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/regular/style.css">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/fill/style.css">
+    <link rel="icon" href="../favicon.ico" sizes="any">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-32x32.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-16x16.png" type="image/png" sizes="16x16">
+    <link rel="apple-touch-icon" href="../assets/img/brand/qt-apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noticia+Text:ital,wght@0,400;0,700;1,400;1,700&family=Bricolage+Grotesque:wght@700;800&family=Genos:wght@700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="../assets/css/style.css?v=20261003pwastrip6">
+    <link rel="stylesheet" href="../assets/css/admin.css?v=20260929">
+</head>
+<body class="admin-page dashboard-page">
+    <div class="admin-shell">
+        <aside id="admin-sidebar"></aside>
+        <main class="admin-content">
+            <div class="dashboard-shell">
+
+                <header class="dashboard-hero">
+                    <div class="dashboard-hero-copy">
+                        <p class="dashboard-kicker">Painel editorial · <span data-site-brand-name>Qualquer Tecla</span></p>
+                        <h1 class="dashboard-title">Dashboard</h1>
+                        <p class="dashboard-lede" id="dashboard-subtitle">Visão geral da redação</p>
+                    </div>
+                    <div class="dashboard-hero-actions admin-page-actions">
+                        <a href="../index.html" target="_blank" rel="noopener" class="admin-action admin-action--ghost">
+                            <i class="ph ph-arrow-square-out" aria-hidden="true"></i>
+                            <span class="admin-action-label">Ver site</span>
+                        </a>
+                        <a href="nova-noticia.html" class="admin-action admin-action--primary">
+                            <i class="ph ph-plus" aria-hidden="true"></i>
+                            <span>Nova Notícia</span>
+                        </a>
+                    </div>
+                </header>
+
+                <nav class="dashboard-rail" aria-label="Atalhos do painel">
+                    <a href="noticias.html" class="dashboard-rail-link">Notícias</a>
+                    <a href="autores.html" class="dashboard-rail-link">Autores</a>
+                    <a href="reacoes.html" class="dashboard-rail-link">Reações</a>
+                    <a href="categorias.html" class="dashboard-rail-link">Categorias</a>
+                </nav>
+
+                <section class="dashboard-panel" aria-labelledby="stats-heading">
+                    <header class="dashboard-panel-head">
+                        <div>
+                            <h2 id="stats-heading" class="dashboard-panel-title">Resumo editorial</h2>
+                            <p class="dashboard-panel-desc">Acervo, publicação e alcance</p>
+                        </div>
+                    </header>
+                    <div class="dashboard-metrics">
+                        <article class="dashboard-metric">
+                            <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-article"></i></div>
+                            <div class="dashboard-metric-body">
+                                <p class="dashboard-metric-label">Total</p>
+                                <p class="dashboard-metric-value" id="stat-total">—</p>
+                                <p class="dashboard-metric-hint">matérias no acervo</p>
+                            </div>
+                        </article>
+                        <article class="dashboard-metric">
+                            <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-check-circle"></i></div>
+                            <div class="dashboard-metric-body">
+                                <p class="dashboard-metric-label">Publicadas</p>
+                                <p class="dashboard-metric-value" id="stat-published">—</p>
+                                <p class="dashboard-metric-hint">
+                                    <a href="noticias.html?status=published" class="dashboard-metric-link">ver no acervo</a>
+                                </p>
+                            </div>
+                        </article>
+                        <article class="dashboard-metric">
+                            <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-notebook"></i></div>
+                            <div class="dashboard-metric-body">
+                                <p class="dashboard-metric-label">Rascunhos</p>
+                                <p class="dashboard-metric-value" id="stat-drafts">—</p>
+                                <p class="dashboard-metric-hint">
+                                    <a href="noticias.html?status=draft" class="dashboard-metric-link">revisar agora</a>
+                                </p>
+                            </div>
+                        </article>
+                        <article class="dashboard-metric">
+                            <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-eye"></i></div>
+                            <div class="dashboard-metric-body">
+                                <p class="dashboard-metric-label">Visualizações</p>
+                                <p class="dashboard-metric-value" id="stat-views">—</p>
+                                <p class="dashboard-metric-hint">soma das publicadas</p>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="dashboard-panel" aria-labelledby="reactions-heading">
+                    <header class="dashboard-panel-head">
+                        <div>
+                            <h2 id="reactions-heading" class="dashboard-panel-title">Engajamento</h2>
+                            <p class="dashboard-panel-desc">Reações dos leitores</p>
+                        </div>
+                        <a href="reacoes.html" class="dashboard-panel-link">
+                            Ver métricas <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                        </a>
+                    </header>
+                    <div class="dashboard-metrics dashboard-metrics--compact">
+                        <article class="dashboard-metric">
+                            <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-smiley"></i></div>
+                            <div class="dashboard-metric-body">
+                                <p class="dashboard-metric-label">Total de reações</p>
+                                <p class="dashboard-metric-value" id="stat-reactions-total"><span class="admin-skeleton admin-skeleton--value admin-skeleton--pulse" aria-hidden="true"></span><span class="visually-hidden">Carregando</span></p>
+                                <p class="dashboard-metric-hint" id="stat-reactions-total-hint">carregando…</p>
+                            </div>
+                        </article>
+                        <article class="dashboard-metric">
+                            <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-trophy"></i></div>
+                            <div class="dashboard-metric-body">
+                                <p class="dashboard-metric-label">Mais escolhida</p>
+                                <p class="dashboard-metric-value dashboard-metric-value--sm" id="stat-reactions-top"><span class="admin-skeleton admin-skeleton--md admin-skeleton--pulse" aria-hidden="true"></span><span class="visually-hidden">Carregando</span></p>
+                                <p class="dashboard-metric-hint">reação líder</p>
+                            </div>
+                        </article>
+                        <article class="dashboard-metric">
+                            <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-plugs-connected"></i></div>
+                            <div class="dashboard-metric-body">
+                                <p class="dashboard-metric-label">Status</p>
+                                <div class="dashboard-metric-value dashboard-metric-value--sm" id="stat-reactions-status">
+                                    <span class="admin-skeleton admin-skeleton--sm admin-skeleton--pulse" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Carregando</span>
+                                </div>
+                                <p class="dashboard-metric-hint">fonte Supabase</p>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="dashboard-panel" aria-labelledby="favorites-heading">
+                    <header class="dashboard-panel-head">
+                        <div>
+                            <h2 id="favorites-heading" class="dashboard-panel-title">Favoritos do Player</h2>
+                            <p class="dashboard-panel-desc">Métricas de matérias favoritadas</p>
+                        </div>
+                    </header>
+                    <div class="dashboard-metrics dashboard-metrics--compact">
+                        <article class="dashboard-metric">
+                            <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-heart"></i></div>
+                            <div class="dashboard-metric-body">
+                                <p class="dashboard-metric-label">Total de favoritos</p>
+                                <p class="dashboard-metric-value" id="stat-favorites-total"><span class="admin-skeleton admin-skeleton--value admin-skeleton--pulse" aria-hidden="true"></span><span class="visually-hidden">Carregando</span></p>
+                                <p class="dashboard-metric-hint" id="stat-favorites-total-hint">em todas as matérias</p>
+                            </div>
+                        </article>
+                        <article class="dashboard-metric">
+                            <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-star"></i></div>
+                            <div class="dashboard-metric-body">
+                                <p class="dashboard-metric-label">Mais favoritada</p>
+                                <p class="dashboard-metric-value dashboard-metric-value--sm" id="stat-favorites-top" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;"><span class="admin-skeleton admin-skeleton--md admin-skeleton--pulse" aria-hidden="true"></span><span class="visually-hidden">Carregando</span></p>
+                                <p class="dashboard-metric-hint" id="stat-favorites-top-hint">matéria líder</p>
+                            </div>
+                        </article>
+                        <article class="dashboard-metric">
+                            <div class="dashboard-metric-icon" aria-hidden="true"><i class="ph ph-database"></i></div>
+                            <div class="dashboard-metric-body">
+                                <p class="dashboard-metric-label">Status</p>
+                                <div class="dashboard-metric-value dashboard-metric-value--sm" id="stat-favorites-status">
+                                    <span class="admin-skeleton admin-skeleton--sm admin-skeleton--pulse" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Carregando</span>
+                                </div>
+                                <p class="dashboard-metric-hint">fonte MockData</p>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="dashboard-panel" aria-labelledby="recent-heading">
+                    <header class="dashboard-panel-head">
+                        <div>
+                            <h2 id="recent-heading" class="dashboard-panel-title">Atividade recente</h2>
+                            <p class="dashboard-panel-desc">Últimas matérias do acervo</p>
+                        </div>
+                        <a href="noticias.html" class="dashboard-panel-link">
+                            Ver todas <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                        </a>
+                    </header>
+
+                    <div id="recent-list" class="dashboard-feed" hidden></div>
+
+                    <div id="recent-empty" class="dashboard-empty" hidden>
+                        <p class="dashboard-kicker">Redação</p>
+                        <p class="dashboard-empty-title">Nenhuma matéria ainda</p>
+                        <p class="dashboard-empty-text">Quando houver conteúdo no acervo, a atividade recente aparece aqui.</p>
+                        <a href="nova-noticia.html" class="admin-action admin-action--primary">
+                            <i class="ph ph-plus" aria-hidden="true"></i>
+                            <span>Nova Notícia</span>
+                        </a>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../config/supabase.js"></script>
+    <script>window.SITE_BASE = '../';</script>
+    <script src="../assets/js/data/mock-data.js?v=20260917spotify1"></script>
+    <script src="../assets/js/data/reactions.js?v=20260909prod2"></script>
+    <script src="../assets/js/data/favorites.js?v=1"></script>
+    <script src="../assets/js/admin/auth-stub.js?v=20260826risk"></script>
+    <script src="../assets/js/admin/layout.js?v=20260909brand6"></script>
+    <script>
+        if (!window.AdminAuth.requireAuth()) throw new Error('auth');
+        window.AdminLayout.mountSidebar();
+        if (window.AdminLayout.applySiteBrand) window.AdminLayout.applySiteBrand();
+
+        const articles = window.MockData.articles || [];
+        const categories = window.MockData.categories || [];
+        const published = articles.filter((a) => a.status === 'published');
+        const drafts = articles.filter((a) => a.status === 'draft');
+
+        function formatViews(n) {
+            const value = Number(n) || 0;
+            if (value < 1000) return String(value);
+            if (value < 1000000) {
+                const mil = value / 1000;
+                const rounded = mil >= 100 ? Math.round(mil) : Math.round(mil * 10) / 10;
+                return String(rounded).replace('.', ',') + ' mil';
+            }
+            const mi = value / 1000000;
+            const rounded = Math.round(mi * 10) / 10;
+            return String(rounded).replace('.', ',') + ' mi';
+        }
+
+        function categoryName(article) {
+            const cat = categories.find((c) => c.slug === article.category_slug);
+            return cat ? cat.name : '—';
+        }
+
+        function articleDate(article) {
+            const raw = article.published_at || article.updated_at || article.created_at;
+            if (!raw) return '—';
+            return new Date(raw).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+        }
+
+        function articleSortTime(article) {
+            const raw = article.published_at || article.updated_at || article.created_at || 0;
+            return new Date(raw).getTime();
+        }
+
+        document.getElementById('dashboard-subtitle').textContent =
+            articles.length + ' matérias · ' + published.length + ' no ar';
+
+        document.getElementById('stat-total').textContent = String(articles.length);
+        document.getElementById('stat-published').textContent = String(published.length);
+        document.getElementById('stat-drafts').textContent = String(drafts.length);
+        document.getElementById('stat-views').textContent = formatViews(
+            published.reduce((s, a) => s + (a.views || 0), 0)
+        );
+
+        (async function loadReactionPreview() {
+            const totalEl = document.getElementById('stat-reactions-total');
+            const topEl = document.getElementById('stat-reactions-top');
+            const statusEl = document.getElementById('stat-reactions-status');
+            const hintEl = document.getElementById('stat-reactions-total-hint');
+            const store = window.ReactionsStore;
+
+            if (!store || !store.isRemoteEnabled()) {
+                totalEl.textContent = '0';
+                topEl.textContent = '—';
+                hintEl.textContent = 'sem conexão remota';
+                statusEl.innerHTML = '<span class="admin-badge admin-badge--offline">Supabase off</span>';
+                return;
+            }
+
+            const metrics = await store.getMetrics({});
+            const reactionsPanel = document.querySelector('[aria-labelledby="reactions-heading"]');
+            if (metrics.error) {
+                totalEl.textContent = '—';
+                topEl.textContent = '—';
+                hintEl.textContent = 'falha ao carregar';
+                statusEl.innerHTML = '<span class="admin-badge admin-badge--offline">Erro</span>';
+                return;
+            }
+
+            totalEl.textContent = String(metrics.total || 0);
+            topEl.textContent = metrics.top_reaction ? store.labelFor(metrics.top_reaction) : '—';
+            hintEl.textContent = 'avaliações no período';
+            statusEl.innerHTML = '<span class="admin-badge admin-badge--online">Online</span>';
+            if (reactionsPanel) {
+                reactionsPanel.classList.remove('admin-animate-highlight');
+                void reactionsPanel.offsetWidth;
+                reactionsPanel.classList.add('admin-animate-highlight');
+            }
+        })();
+
+        (async function loadFavoritesPreview() {
+            const totalEl = document.getElementById('stat-favorites-total');
+            const topEl = document.getElementById('stat-favorites-top');
+            const statusEl = document.getElementById('stat-favorites-status');
+            const store = window.FavoritesStore;
+
+            if (!store) {
+                totalEl.textContent = '—';
+                topEl.textContent = '—';
+                statusEl.innerHTML = '<span class="admin-badge admin-badge--offline">Indisponível</span>';
+                return;
+            }
+
+            const metrics = await store.getMetrics();
+            
+            totalEl.textContent = String(metrics.total || 0);
+            if (metrics.topArticle) {
+                const article = articles.find(a => a.slug === metrics.topArticle);
+                topEl.textContent = article ? article.title : metrics.topArticle;
+            } else {
+                topEl.textContent = '—';
+            }
+            
+            statusEl.innerHTML = '<span class="admin-badge admin-badge--offline">Apenas Local</span>';
+        })();
+
+        function renderRecent() {
+            const list = document.getElementById('recent-list');
+            const empty = document.getElementById('recent-empty');
+            const recent = articles
+                .slice()
+                .sort((a, b) => articleSortTime(b) - articleSortTime(a))
+                .slice(0, 6);
+
+            list.replaceChildren();
+
+            if (!recent.length) {
+                empty.hidden = false;
+                empty.classList.remove('admin-animate-in');
+                void empty.offsetWidth;
+                empty.classList.add('is-revealed', 'admin-animate-in');
+                list.hidden = true;
+                return;
+            }
+
+            empty.hidden = true;
+            empty.classList.remove('is-revealed', 'admin-animate-in');
+            list.hidden = false;
+
+            recent.forEach((a) => {
+                const isPublished = a.status === 'published';
+                const hasDraftRevision =
+                    a.draft_revision && typeof a.draft_revision === 'object';
+                const item = document.createElement('article');
+                item.className = 'dashboard-feed-item';
+
+                const main = document.createElement('div');
+                main.className = 'dashboard-feed-main';
+
+                const title = document.createElement('h3');
+                title.className = 'dashboard-feed-title';
+                const titleLink = document.createElement('a');
+                titleLink.className = 'dashboard-feed-title-link';
+                titleLink.href = 'nova-noticia.html?slug=' + encodeURIComponent(a.slug);
+                titleLink.textContent = a.title || '(sem título)';
+                title.appendChild(titleLink);
+
+                const meta = document.createElement('p');
+                meta.className = 'dashboard-feed-meta';
+                const viewsValue = isPublished ? formatViews(a.views || 0) : '—';
+                const catSpan = document.createElement('span');
+                catSpan.textContent = categoryName(a);
+                const dot1 = document.createElement('span');
+                dot1.className = 'dashboard-feed-dot';
+                dot1.setAttribute('aria-hidden', 'true');
+                const dateSpan = document.createElement('span');
+                dateSpan.textContent = articleDate(a);
+                const dot2 = document.createElement('span');
+                dot2.className = 'dashboard-feed-dot';
+                dot2.setAttribute('aria-hidden', 'true');
+                const viewsWrap = document.createElement('span');
+                viewsWrap.className = 'dashboard-feed-views';
+                viewsWrap.innerHTML = '<i class="ph ph-eye" aria-hidden="true"></i>';
+                const viewsSpan = document.createElement('span');
+                viewsSpan.textContent = viewsValue;
+                viewsWrap.appendChild(viewsSpan);
+                meta.append(catSpan, dot1, dateSpan, dot2, viewsWrap);
+
+                main.append(title, meta);
+
+                const side = document.createElement('div');
+                side.className = 'dashboard-feed-side';
+
+                const badges = document.createElement('div');
+                badges.className = 'admin-status-stack';
+                const badge = document.createElement('span');
+                badge.className = isPublished
+                    ? 'admin-badge admin-badge--success'
+                    : 'admin-badge admin-badge--warning';
+                badge.textContent = isPublished ? 'Publicado' : 'Rascunho';
+                badges.appendChild(badge);
+                if (isPublished && hasDraftRevision) {
+                    const edit = document.createElement('span');
+                    edit.className = 'admin-badge admin-badge--warning';
+                    edit.textContent = 'Edição em rascunho';
+                    edit.title = 'Há alterações salvas que ainda não foram republicadas';
+                    badges.appendChild(edit);
+                }
+
+                const actions = document.createElement('div');
+                actions.className = 'dashboard-feed-actions';
+
+                const edit = document.createElement('a');
+                edit.href = 'nova-noticia.html?slug=' + encodeURIComponent(a.slug);
+                edit.className = 'admin-btn-icon';
+                edit.innerHTML = '<i class="ph ph-pencil-simple" aria-hidden="true"></i>';
+                edit.setAttribute('aria-label', 'Editar: ' + (a.title || 'matéria sem título'));
+                actions.appendChild(edit);
+
+                if (isPublished) {
+                    const view = document.createElement('a');
+                    view.href = '../noticia.html?slug=' + encodeURIComponent(a.slug);
+                    view.className = 'admin-btn-icon';
+                    view.target = '_blank';
+                    view.rel = 'noopener';
+                    view.innerHTML = '<i class="ph ph-arrow-square-out" aria-hidden="true"></i>';
+                    view.setAttribute('aria-label', 'Ver no site: ' + (a.title || 'matéria'));
+                    actions.appendChild(view);
+                }
+
+                side.append(badges, actions);
+                item.append(main, side);
+                list.appendChild(item);
+            });
+        }
+
+        renderRecent();
+    </script>
+</body>
+</html>

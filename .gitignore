@@ -1,0 +1,70 @@
+# Dependências
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Ambiente
+.env
+.env.local
+.env.production
+
+# Netlify
+.netlify/
+
+# Scratch / temporários de agentes
+scratch/
+
+# Scripts descartáveis na raiz (todos os .cjs e .py na raiz são patches temporários)
+# Os scripts legítimos do projeto ficam em scripts/ e são .mjs
+/*.cjs
+/*.py
+
+# Arquivos temporários de teste/auditoria na raiz
+test_*.js
+test_*.html
+test_*.png
+audit_screenshots/
+audit_final_screens/
+audit_final_results.json
+
+# Scripts e textos descartáveis na raiz
+patch.js
+backup_update.js
+curr_*.txt
+current_*.txt
+current_*.js
+
+# HTMLs de teste
+test_dom.html
+test_audit_final.html
+test_dummy.html
+test_icons.html
+rendered_dom.html
+
+# Relatórios temporários
+QA_REPORT.md
+RELATORIO_RECONSTRUCAO.md
+root-cause-report.md
+
+# Cache local regenerável (TTS/article-audio)
+.cache/
+
+# Dumps temporários de scripts/QA
+scripts/_tmp*/
+
+# Scratch e screenshots de auditoria
+scratch-*.css
+scratch-*.js
+main_controls_*.png
+marquee.png
+
+# Logs
+*.log

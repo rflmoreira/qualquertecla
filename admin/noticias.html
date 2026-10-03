@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <script>!function(){try{var t=localStorage.getItem("qualquer-tecla-theme");document.documentElement.setAttribute("data-theme",t==="dark"||t==="light"?t:"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}}();</script>
+    <script src="../assets/js/theme.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Gerenciar Notícias | Qualquer Tecla Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/regular/Phosphor.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/fill/Phosphor-Fill.woff2">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/regular/style.css">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/fill/style.css">
+    <link rel="icon" href="../favicon.ico" sizes="any">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-32x32.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-16x16.png" type="image/png" sizes="16x16">
+    <link rel="apple-touch-icon" href="../assets/img/brand/qt-apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noticia+Text:ital,wght@0,400;0,700;1,400;1,700&family=Bricolage+Grotesque:wght@700;800&family=Genos:wght@700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="../assets/css/style.css?v=20261003pwastrip6">
+    <link rel="stylesheet" href="../assets/css/admin.css?v=20260929">
+</head>
+<body class="admin-page">
+    <div class="admin-shell">
+        <aside id="admin-sidebar"></aside>
+        <main class="admin-content">
+            <header class="admin-page-header">
+                <div class="admin-page-header-copy">
+                    <p class="dashboard-kicker">Painel editorial · <span data-site-brand-name>Qualquer Tecla</span></p>
+                    <h1 class="admin-page-title">Gerenciar Notícias</h1>
+                    <p class="admin-page-subtitle">Busque, filtre e edite todas as matérias do portal.</p>
+                </div>
+                <div class="admin-page-actions">
+                    <a href="nova-noticia.html" class="admin-action admin-action--primary">
+                        <i class="ph ph-plus" aria-hidden="true"></i>
+                        <span>Escrever Notícia</span>
+                    </a>
+                </div>
+            </header>
+
+            <div class="admin-card">
+                <form id="news-filter" class="admin-filter-bar admin-filter-bar--news" role="search" aria-label="Filtrar notícias">
+                    <div class="admin-filter-search">
+                        <label class="admin-filter-label" for="filter-title">Buscar</label>
+                        <div class="admin-filter-search-field">
+                            <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                            <input type="search" id="filter-title" class="form-control" placeholder="Buscar por título…" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="admin-filter-bar__controls">
+                        <div class="admin-filter-field">
+                            <label class="admin-filter-label" for="filter-cat">Editoria</label>
+                            <select id="filter-cat" class="form-select">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                        <div class="admin-filter-field">
+                            <label class="admin-filter-label" for="filter-status">Status</label>
+                            <select id="filter-status" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="published">Publicado</option>
+                                <option value="draft">Rascunho</option>
+                            </select>
+                        </div>
+                        <div class="admin-filter-actions">
+                            <button type="button" class="admin-action admin-action--ghost" id="filter-reset" disabled>
+                                Limpar
+                            </button>
+                            <button type="submit" class="admin-action admin-action--primary" id="filter-btn">
+                                <i class="ph ph-funnel-simple" aria-hidden="true"></i>
+                                <span>Filtrar</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <p id="news-filter-feedback" class="admin-filter-feedback" aria-live="polite" hidden></p>
+                <div class="admin-card-body">
+                    <div class="table-responsive">
+                        <table class="table admin-table admin-table--stack align-middle">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">Título</th>
+                                    <th>Editoria</th>
+                                    <th>Autor</th>
+                                    <th>Status</th>
+                                    <th>Data</th>
+                                    <th class="text-end">Views</th>
+                                    <th class="text-end pe-4">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="news-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div id="news-empty" class="admin-empty" hidden>
+                        <div class="admin-empty-icon"><i class="ph ph-magnifying-glass" aria-hidden="true"></i></div>
+                        <p class="admin-empty-title">Nenhuma notícia encontrada</p>
+                        <p class="admin-empty-text">Ajuste os filtros ou crie uma nova matéria.</p>
+                        <a href="nova-noticia.html" class="admin-action admin-action--primary">
+                            <i class="ph ph-plus" aria-hidden="true"></i>
+                            <span>Nova Notícia</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>window.SITE_BASE = '../';</script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../config/supabase.js"></script>
+    <script src="../assets/js/data/mock-data.js?v=20260917spotify1"></script>
+    <script src="../assets/js/api.js?v=20260831support1"></script>
+    <script src="../assets/js/admin/auth-stub.js?v=20260826risk"></script>
+    <script src="../assets/js/admin/layout.js?v=20260909brand6"></script>
+    <script>
+        if (!window.AdminAuth.requireAuth()) throw new Error('auth');
+        window.AdminLayout.mountSidebar();
+
+        const catSelect = document.getElementById('filter-cat');
+        let allArticles = [];
+
+        async function initFilters() {
+            try {
+                const categories = await window.API.getAllCategories();
+                categories.forEach((c) => {
+                    const opt = document.createElement('option');
+                    opt.value = c.slug;
+                    opt.textContent = c.name;
+                    catSelect.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Falha ao carregar categorias', err);
+            }
+        }
+
+        function formatViews(n) {
+            const value = Number(n) || 0;
+            if (value < 1000) return String(value);
+            if (value < 1000000) {
+                const mil = value / 1000;
+                const rounded = mil >= 100 ? Math.round(mil) : Math.round(mil * 10) / 10;
+                return String(rounded).replace('.', ',') + ' mil';
+            }
+            const mi = value / 1000000;
+            const rounded = Math.round(mi * 10) / 10;
+            return String(rounded).replace('.', ',') + ' mi';
+        }
+
+        function revealAnimated(el, show) {
+            if (!el) return;
+            if (!show) {
+                el.hidden = true;
+                el.classList.remove('is-revealed', 'admin-animate-in');
+                return;
+            }
+            el.hidden = false;
+            el.classList.remove('admin-animate-in');
+            void el.offsetWidth;
+            el.classList.add('is-revealed', 'admin-animate-in');
+        }
+
+        function renderList() {
+            const q = document.getElementById('filter-title').value.trim().toLowerCase();
+            const cat = catSelect.value;
+            const status = document.getElementById('filter-status').value;
+            const tbody = document.getElementById('news-tbody');
+            const empty = document.getElementById('news-empty');
+            tbody.innerHTML = '';
+
+            const rows = allArticles.filter((a) => {
+                if (q && !a.title.toLowerCase().includes(q)) return false;
+                if (cat && a.categories && a.categories.slug !== cat) return false;
+                if (status && a.status !== status) return false;
+                return true;
+            });
+
+            empty.hidden = rows.length > 0;
+            if (rows.length > 0) {
+                empty.classList.remove('is-revealed', 'admin-animate-in');
+            } else {
+                revealAnimated(empty, true);
+            }
+
+            const feedback = document.getElementById('news-filter-feedback');
+            if (feedback) {
+                const hasFilter =
+                    q || cat || status;
+                if (!hasFilter) {
+                    feedback.hidden = true;
+                    feedback.textContent = '';
+                    feedback.classList.remove('is-revealed', 'admin-animate-in');
+                } else {
+                    feedback.textContent =
+                        rows.length === 0
+                            ? 'Nenhuma matéria encontrada com os filtros atuais.'
+                            : `${rows.length} matéria${rows.length === 1 ? '' : 's'} encontrada${rows.length === 1 ? '' : 's'}.`;
+                    revealAnimated(feedback, true);
+                }
+            }
+
+            rows.forEach((a) => {
+                const isPublished = a.status === 'published';
+                const hasDraftRevision =
+                    a.draft_revision && typeof a.draft_revision === 'object';
+                const viewsLabel = isPublished ? formatViews(a.views || 0) : '—';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+<td class="ps-4 fw-medium" data-label="Título"></td>
+<td data-label="Editoria"></td>
+<td data-label="Autor"></td>
+<td data-label="Status"></td>
+<td class="text-secondary small" data-label="Data"></td>
+<td class="text-end text-secondary small" data-label="Views"></td>
+<td class="text-end pe-4" data-label="Ações">
+  <a href="nova-noticia.html?slug=${encodeURIComponent(a.slug)}" class="admin-btn-icon" aria-label="Editar"><i class="ph ph-pencil-simple" aria-hidden="true"></i></a>
+  <a href="../noticia.html?slug=${encodeURIComponent(a.slug)}" class="admin-btn-icon" target="_blank" rel="noopener" aria-label="Ver no site"><i class="ph ph-arrow-square-out" aria-hidden="true"></i></a>
+</td>`;
+                tr.cells[0].textContent = a.title;
+                tr.cells[1].textContent = a.categories.name;
+                const authorCell = tr.cells[2];
+                authorCell.innerHTML = '';
+                const wrap = document.createElement('div');
+                wrap.className = 'd-flex align-items-center gap-2';
+                const av = document.createElement('img');
+                av.width = 28;
+                av.height = 28;
+                av.className = 'rounded-circle';
+                av.style.objectFit = 'cover';
+                av.alt = '';
+                const fallback = '../' + (window.MockData.DEFAULT_AVATAR || 'assets/img/authors/avatar-default.svg');
+                av.src = a.authors.avatar
+                    ? a.authors.avatar.startsWith('data:') || a.authors.avatar.startsWith('http')
+                        ? a.authors.avatar
+                        : '../' + a.authors.avatar.replace(/^\//, '')
+                    : fallback;
+                av.onerror = () => {
+                    av.onerror = null;
+                    av.src = fallback;
+                };
+                const name = document.createElement('span');
+                name.textContent = a.authors.name;
+                wrap.append(av, name);
+                authorCell.appendChild(wrap);
+
+                const statusWrap = document.createElement('div');
+                statusWrap.className = 'admin-status-stack';
+                if (isPublished) {
+                    const pub = document.createElement('span');
+                    pub.className = 'admin-badge admin-badge--success';
+                    pub.textContent = 'Publicado';
+                    statusWrap.appendChild(pub);
+                    if (hasDraftRevision) {
+                        const edit = document.createElement('span');
+                        edit.className = 'admin-badge admin-badge--warning';
+                        edit.textContent = 'Edição em rascunho';
+                        edit.title = 'Há alterações salvas que ainda não foram republicadas';
+                        statusWrap.appendChild(edit);
+                    }
+                } else {
+                    const draft = document.createElement('span');
+                    draft.className = 'admin-badge admin-badge--warning';
+                    draft.textContent = 'Rascunho';
+                    statusWrap.appendChild(draft);
+                }
+                tr.cells[3].replaceChildren(statusWrap);
+
+                tr.cells[4].textContent = a.published_at
+                    ? new Date(a.published_at).toLocaleDateString('pt-BR')
+                    : '—';
+                const viewsWrap = document.createElement('span');
+                viewsWrap.className = 'admin-table-views';
+                viewsWrap.innerHTML = '<i class="ph ph-eye" aria-hidden="true"></i>';
+                const viewsSpan = document.createElement('span');
+                viewsSpan.textContent = viewsLabel;
+                viewsWrap.appendChild(viewsSpan);
+                tr.cells[5].replaceChildren(viewsWrap);
+                tr.cells[5].setAttribute(
+                    'aria-label',
+                    isPublished ? viewsLabel + ' visualizações' : 'Sem visualizações'
+                );
+                tbody.appendChild(tr);
+            });
+        }
+
+        function applyFilter() {
+            const btn = document.getElementById('filter-btn');
+            if (btn) btn.classList.add('is-loading');
+            renderList();
+            syncResetVisibility();
+            if (btn) {
+                requestAnimationFrame(() => {
+                    btn.classList.remove('is-loading');
+                });
+            }
+        }
+
+        document.getElementById('news-filter').addEventListener('submit', (e) => {
+            e.preventDefault();
+            applyFilter();
+        });
+        document.getElementById('filter-title').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applyFilter();
+            }
+        });
+        document.getElementById('filter-cat').addEventListener('change', () => {
+            renderList();
+            syncResetVisibility();
+        });
+        document.getElementById('filter-status').addEventListener('change', () => {
+            renderList();
+            syncResetVisibility();
+        });
+
+        const resetBtn = document.getElementById('filter-reset');
+        function syncResetVisibility() {
+            const hasFilter =
+                document.getElementById('filter-title').value.trim() ||
+                catSelect.value ||
+                document.getElementById('filter-status').value;
+            resetBtn.disabled = !hasFilter;
+        }
+
+        resetBtn.addEventListener('click', () => {
+            document.getElementById('filter-title').value = '';
+            catSelect.value = '';
+            document.getElementById('filter-status').value = '';
+            renderList();
+            syncResetVisibility();
+        });
+
+        async function fetchAll() {
+            const tbody = document.getElementById('news-tbody');
+            const empty = document.getElementById('news-empty');
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-secondary"><i class="ph ph-spinner ph-spin fs-4"></i><div class="mt-2">Carregando matérias...</div></td></tr>';
+            empty.hidden = true;
+            try {
+                allArticles = await window.API.getAllArticles();
+                renderList();
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-danger"><i class="ph ph-warning-circle fs-4"></i><div class="mt-2">Erro ao carregar matérias. Atualize a página.</div></td></tr>';
+            }
+        }
+
+        async function init() {
+            await initFilters();
+            const statusParam = new URLSearchParams(window.location.search).get('status');
+            const statusSelect = document.getElementById('filter-status');
+            if (statusParam && statusSelect && [...statusSelect.options].some((o) => o.value === statusParam)) {
+                statusSelect.value = statusParam;
+            }
+            await fetchAll();
+            syncResetVisibility();
+        }
+
+        init();
+
+        document.getElementById('filter-title').addEventListener('input', syncResetVisibility);
+        document.getElementById('filter-cat').addEventListener('change', syncResetVisibility);
+        document.getElementById('filter-status').addEventListener('change', syncResetVisibility);
+
+        render();
+        syncResetVisibility();
+    </script>
+</body>
+</html>

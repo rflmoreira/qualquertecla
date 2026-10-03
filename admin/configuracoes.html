@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <script>!function(){try{var t=localStorage.getItem("qualquer-tecla-theme");document.documentElement.setAttribute("data-theme",t==="dark"||t==="light"?t:"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}}();</script>
+    <script src="../assets/js/theme.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Configurações do Site | Qualquer Tecla Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/regular/Phosphor.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/fill/Phosphor-Fill.woff2">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/regular/style.css">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/fill/style.css">
+    <link rel="icon" href="../favicon.ico" sizes="any">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-32x32.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-16x16.png" type="image/png" sizes="16x16">
+    <link rel="apple-touch-icon" href="../assets/img/brand/qt-apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noticia+Text:ital,wght@0,400;0,700;1,400;1,700&family=Bricolage+Grotesque:wght@700;800&family=Genos:wght@700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="../assets/css/style.css?v=20261003pwastrip6">
+    <link rel="stylesheet" href="../assets/css/admin.css?v=20260929">
+</head>
+<body class="admin-page">
+    <div class="admin-shell">
+        <aside id="admin-sidebar"></aside>
+        <main class="admin-content">
+            <header class="admin-page-header">
+                <div class="admin-page-header-copy">
+                    <p class="dashboard-kicker">Painel editorial · <span data-site-brand-name>Qualquer Tecla</span></p>
+                    <h1 class="admin-page-title">Configurações do Site</h1>
+                    <p class="admin-page-subtitle">Identidade, contato e redes sociais exibidas no portal.</p>
+                </div>
+            </header>
+
+            <div class="admin-settings-stack">
+            <form id="settingsForm" class="admin-card admin-form-narrow" novalidate>
+                <div class="admin-card-body admin-card-body--padded">
+                    <h2 class="admin-section-title mb-3">Identidade</h2>
+                    <div class="mb-3">
+                        <label class="admin-field-label" for="siteName">Nome do site</label>
+                        <input type="text" class="form-control" id="siteName" value="Qualquer Tecla" required maxlength="80" autocomplete="organization">
+                    </div>
+                    <div class="mb-3">
+                        <label class="admin-field-label" for="siteDesc">Descrição do site</label>
+                        <textarea class="form-control" id="siteDesc" rows="3" maxlength="400">Para a próxima novidade, pressione Qualquer Tecla.</textarea>
+                        <p class="admin-field-hint mb-0">Usada em textos institucionais curtos e metadados do site.</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="admin-field-label" for="contactEmail">E-mail principal</label>
+                        <input type="email" class="form-control" id="contactEmail" value="redacao@qualquertecla.com.br" required maxlength="120" autocomplete="email">
+                    </div>
+                    <h2 class="admin-section-title mb-3 mt-4">Me pague um café</h2>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="supportEnabled" checked>
+                        <label class="form-check-label" for="supportEnabled">Exibir no menu hambúrguer</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="admin-field-label" for="supportUrl">URL do Payment Link</label>
+                        <input type="url" class="form-control" id="supportUrl" maxlength="500" placeholder="https://buy.stripe.com/..." autocomplete="off" inputmode="url">
+                        <p class="admin-field-hint mb-0">Link Stripe (ou outro https). Em branco ou desativado oculta o item no menu.</p>
+                    </div>
+                    <div class="admin-form-actions">
+                        <button type="submit" class="admin-action admin-action--primary">
+                            <i class="ph ph-floppy-disk" aria-hidden="true"></i>
+                            <span>Salvar identidade</span>
+                        </button>
+                    </div>
+                    <p id="settingsFeedback" class="admin-alert mt-3 mb-0" hidden role="status"></p>
+                </div>
+            </form>
+
+            <section id="redes" class="admin-card" aria-labelledby="socials-heading">
+                <div class="admin-card-body admin-card-body--padded">
+                    <div class="admin-card-toolbar">
+                        <div>
+                            <h2 id="socials-heading" class="admin-section-title">Redes sociais</h2>
+                            <p class="admin-field-hint">Links, ícones, ordem e visibilidade no menu mobile.</p>
+                        </div>
+                        <button type="button" class="admin-action admin-action--primary" id="btnNewSocial">
+                            <i class="ph ph-plus" aria-hidden="true"></i>
+                            <span>Nova rede</span>
+                        </button>
+                    </div>
+                    <p id="socials-feedback" class="admin-alert mb-3" hidden role="status"></p>
+                    <div class="table-responsive">
+                        <table class="table admin-table admin-table--stack align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4" style="width: 3rem;">Ícone</th>
+                                    <th>Rede</th>
+                                    <th>URL</th>
+                                    <th>Ativa</th>
+                                    <th class="text-end pe-4">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="socials-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div id="socials-empty" class="admin-empty" hidden>
+                        <span class="admin-empty-icon"><i class="ph ph-share-network" aria-hidden="true"></i></span>
+                        <span class="admin-empty-title d-block">Nenhuma rede social</span>
+                        <span class="admin-empty-text">Adicione Instagram, YouTube, X e outras redes para exibir no site.</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="admin-card admin-form-narrow" aria-labelledby="login-bg-heading" id="loginBackgroundSettings">
+                <div class="admin-card-body admin-card-body--padded">
+                    <h2 id="login-bg-heading" class="admin-section-title mb-1">Fundo do login</h2>
+                    <p class="admin-field-hint mb-3">
+                        Padrão global da página de acesso editorial. Visitantes ainda podem sobrescrever localmente no próprio browser.
+                    </p>
+                    <div class="login-bg-modes mb-3" role="radiogroup" aria-label="Tipo de fundo do login">
+                        <label class="login-bg-mode">
+                            <input type="radio" name="siteLoginBgMode" value="imageUrl" checked>
+                            <span>Imagem por URL</span>
+                        </label>
+                        <label class="login-bg-mode">
+                            <input type="radio" name="siteLoginBgMode" value="unsplash">
+                            <span>Unsplash</span>
+                        </label>
+                    </div>
+                    <div class="mb-3" data-site-login-bg-for="imageUrl">
+                        <label class="admin-field-label" for="siteLoginBgImageUrl">URL da imagem</label>
+                        <input type="url" class="form-control" id="siteLoginBgImageUrl" maxlength="2000" value="https://images.unsplash.com/photo-1618519764620-7403abdbdfe9?q=80&amp;w=2340&amp;auto=format&amp;fit=crop&amp;ixlib=rb-4.1.0&amp;ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" placeholder="https://" autocomplete="off" inputmode="url">
+                    </div>
+                    <div data-site-login-bg-for="unsplash" hidden>
+                        <div class="mb-3">
+                            <label class="admin-field-label" for="siteLoginBgCollection">Coleção Unsplash</label>
+                            <input type="text" class="form-control" id="siteLoginBgCollection" maxlength="32" placeholder="56636246" autocomplete="off" inputmode="numeric">
+                            <p class="admin-field-hint mb-0">ID da coleção. Encontrado no URL, exemplo: 42576559</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="admin-field-label" for="siteLoginBgRefresh">Mostrar uma foto nova</label>
+                            <select class="form-select" id="siteLoginBgRefresh">
+                                <option value="every_open">A cada visita</option>
+                                <option value="hourly" selected>Toda hora</option>
+                                <option value="daily">Todo dia</option>
+                                <option value="never">Manter a atual</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="admin-field-label" for="siteLoginBgBrightDark">Brilho: Escuro (%)</label>
+                            <input type="number" class="form-control" id="siteLoginBgBrightDark" min="70" max="100" step="1" value="100">
+                            <p class="admin-field-hint mb-0">Alterar o brilho de imagens mais escuras</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="admin-field-label" for="siteLoginBgBrightLight">Brilho: Claro (%)</label>
+                            <input type="number" class="form-control" id="siteLoginBgBrightLight" min="70" max="100" step="1" value="80">
+                            <p class="admin-field-hint mb-0">Alterar o brilho de imagens mais claras</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="admin-field-label" for="siteLoginBgBlur">Raio de desfoque (px)</label>
+                            <input type="number" class="form-control" id="siteLoginBgBlur" min="0" max="16" step="1" value="0">
+                        </div>
+                    </div>
+                    <div class="admin-form-actions">
+                        <button type="button" class="admin-action admin-action--primary" id="btnSaveLoginBg">
+                            <i class="ph ph-floppy-disk" aria-hidden="true"></i>
+                            <span>Salvar fundo do login</span>
+                        </button>
+                    </div>
+                    <p id="loginBgFeedback" class="admin-alert mt-3 mb-0" hidden role="status"></p>
+                </div>
+            </section>
+
+            <section class="admin-card admin-form-narrow" aria-labelledby="appearance-heading">
+                <div class="admin-card-body admin-card-body--padded">
+                    <h2 id="appearance-heading" class="admin-section-title mb-1">Aparência</h2>
+                    <p class="admin-field-hint mb-3">Tema do painel e do site público.</p>
+                    <div class="admin-theme-setting">
+                        <div class="admin-theme-setting-copy">
+                            <p class="admin-theme-setting-title">Modo claro / escuro</p>
+                            <p class="admin-theme-setting-desc">Alterna entre o tema claro e o escuro em todas as páginas.</p>
+                        </div>
+                        <button type="button" class="admin-action admin-action--ghost" data-theme-toggle aria-label="Alternar tema">
+                            <i class="ph ph-moon" aria-hidden="true"></i>
+                            <span data-theme-label>Modo escuro</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal fade" id="socialModal" tabindex="-1" aria-labelledby="socialModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+            <form class="modal-content" id="socialForm">
+                <div class="modal-header">
+                    <div class="admin-modal-heading">
+                        <h2 class="modal-title" id="socialModalTitle">Editar rede</h2>
+                    </div>
+                    <button type="button" class="admin-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
+                        <i class="ph ph-x" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="modal-body admin-modal-body">
+                    <input type="hidden" id="socialPreviousId">
+                    <div>
+                        <label class="admin-field-label" for="socialLabel">Nome</label>
+                        <input type="text" class="form-control" id="socialLabel" required maxlength="60" placeholder="Ex.: Instagram" autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="admin-field-label" for="socialUrl">URL</label>
+                        <input type="url" class="form-control" id="socialUrl" required maxlength="500" placeholder="https://" autocomplete="off">
+                        <p class="admin-field-hint mb-0">Link completo do perfil (http ou https).</p>
+                    </div>
+                    <div>
+                        <label class="admin-field-label" for="socialIcon">Ícone</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="admin-social-icon-preview" id="socialIconPreview" aria-hidden="true">
+                                <i class="ph ph-link"></i>
+                            </span>
+                            <select class="form-select" id="socialIcon" required></select>
+                        </div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="socialEnabled" checked>
+                        <label class="form-check-label" for="socialEnabled">Exibir no site</label>
+                    </div>
+                    <p class="admin-alert admin-alert--error mb-0" id="socialFormError" hidden role="alert"></p>
+                </div>
+                <div class="modal-footer admin-modal-footer">
+                    <button type="button" class="admin-action admin-action--ghost" data-bs-dismiss="modal">
+                        <span>Cancelar</span>
+                    </button>
+                    <button type="submit" class="admin-action admin-action--primary">
+                        <span>Salvar</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>window.SITE_BASE = '../';</script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../config/supabase.js"></script>
+    <script src="../assets/js/data/mock-data.js?v=20260917spotify1"></script>
+    <script src="../assets/js/api.js?v=20260831support1"></script>
+    <script src="../assets/js/admin/login-background.js?v=20260909loginbg22"></script>
+    <script src="../assets/js/admin/auth-stub.js?v=20260826risk"></script>
+    <script src="../assets/js/admin/layout.js?v=20260909brand6"></script>
+    <script>
+        if (!window.AdminAuth.requireAuth()) throw new Error('auth');
+        window.AdminLayout.mountSidebar();
+        if (window.AdminLayout.applySiteBrand) {
+            window.AdminLayout.applySiteBrand();
+        }
+
+        if (window.SiteTheme && typeof window.SiteTheme.bindToggles === 'function') {
+            window.SiteTheme.bindToggles(document);
+        }
+
+        const settingsForm = document.getElementById('settingsForm');
+        const settingsFeedback = document.getElementById('settingsFeedback');
+        const siteNameInput = document.getElementById('siteName');
+        const siteDescInput = document.getElementById('siteDesc');
+        const contactEmailInput = document.getElementById('contactEmail');
+        const supportEnabledInput = document.getElementById('supportEnabled');
+        const supportUrlInput = document.getElementById('supportUrl');
+        const loginBgRoot = document.getElementById('loginBackgroundSettings');
+        const loginBgFeedback = document.getElementById('loginBgFeedback');
+        const btnSaveLoginBg = document.getElementById('btnSaveLoginBg');
+
+        const tbody = document.getElementById('socials-tbody');
+        const empty = document.getElementById('socials-empty');
+        const socialForm = document.getElementById('socialForm');
+        const modalEl = document.getElementById('socialModal');
+        const modal = new bootstrap.Modal(modalEl);
+        const titleEl = document.getElementById('socialModalTitle');
+        const labelInput = document.getElementById('socialLabel');
+        const urlInput = document.getElementById('socialUrl');
+        const iconSelect = document.getElementById('socialIcon');
+        const enabledInput = document.getElementById('socialEnabled');
+        const previousIdInput = document.getElementById('socialPreviousId');
+        const errorEl = document.getElementById('socialFormError');
+        const socialsFeedback = document.getElementById('socials-feedback');
+        const iconPreview = document.getElementById('socialIconPreview');
+
+        function showAlert(el, type, message) {
+            el.hidden = false;
+            el.className = 'admin-alert admin-alert--' + type + ' mt-3 mb-0 is-revealed admin-animate-in';
+            if (el === socialsFeedback) {
+                el.className = 'admin-alert admin-alert--' + type + ' mb-3 is-revealed admin-animate-in';
+            }
+            el.textContent = message;
+            el.classList.remove('admin-animate-in');
+            void el.offsetWidth;
+            el.classList.add('admin-animate-in');
+        }
+
+        function fillIdentityForm(settings) {
+            siteNameInput.value = String(settings.siteName || '').trim();
+            siteDescInput.value = settings.siteDescription || '';
+            contactEmailInput.value = settings.contactEmail || '';
+            supportEnabledInput.checked = settings.supportEnabled !== false;
+            supportUrlInput.value = settings.supportUrl || '';
+        }
+
+        function fillIconOptions() {
+            const options = window.MockData.SOCIAL_ICON_OPTIONS || [];
+            iconSelect.innerHTML = '';
+            options.forEach((opt) => {
+                const el = document.createElement('option');
+                el.value = opt.value;
+                el.textContent = opt.label;
+                iconSelect.appendChild(el);
+            });
+        }
+
+        function syncIconPreview() {
+            const icon = iconSelect.value || 'ph-link';
+            iconPreview.innerHTML = '<i class="ph ' + icon + '" aria-hidden="true"></i>';
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function safeUrl(url) {
+            let rawUrl = String(url || '#').trim();
+            if (window.HtmlSafe && typeof window.HtmlSafe.isSafeHref === 'function') {
+                if (!window.HtmlSafe.isSafeHref(rawUrl)) rawUrl = '#';
+            } else if (/^(javascript|vbscript|data):/i.test(rawUrl)) {
+                rawUrl = '#';
+            }
+            return escapeHtml(rawUrl);
+        }
+
+        async function persistSocialRemote() {
+            if (!window.API || typeof window.API.saveSocialLinks !== 'function') return;
+            if (!window.API.isRemoteEnabled || !window.API.isRemoteEnabled()) return;
+            await window.API.saveSocialLinks(window.MockData.getSocialLinks());
+        }
+
+        function renderSocials() {
+            tbody.innerHTML = '';
+            const list = window.MockData.getSocialLinks();
+
+            if (!list.length) {
+                empty.hidden = false;
+                return;
+            }
+            empty.hidden = true;
+
+            list.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td class="ps-4" data-label="Ícone">' +
+                    '<span class="admin-social-icon-preview" aria-hidden="true"><i class="ph ' +
+                    escapeHtml(item.icon || 'ph-link') +
+                    '"></i></span></td>' +
+                    '<td class="fw-medium" data-label="Rede">' +
+                    escapeHtml(item.label) +
+                    '</td>' +
+                    '<td data-label="URL"><a class="admin-social-url" href="' +
+                    safeUrl(item.url) +
+                    '" target="_blank" rel="noopener noreferrer">' +
+                    escapeHtml(item.url) +
+                    '</a></td>' +
+                    '<td data-label="Ativa">' +
+                    '<div class="form-check form-switch mb-0">' +
+                    '<input class="form-check-input social-toggle" type="checkbox" role="switch" ' +
+                    (item.enabled ? 'checked ' : '') +
+                    'aria-label="Exibir ' +
+                    escapeHtml(item.label) +
+                    ' no site">' +
+                    '</div></td>' +
+                    '<td class="text-end pe-4" data-label="Ações">' +
+                    '<div class="d-inline-flex gap-1 justify-content-end">' +
+                    '<button type="button" class="admin-btn-icon social-up" aria-label="Mover para cima"' +
+                    (index === 0 ? ' disabled' : '') +
+                    '><i class="ph ph-caret-up" aria-hidden="true"></i></button>' +
+                    '<button type="button" class="admin-btn-icon social-down" aria-label="Mover para baixo"' +
+                    (index === list.length - 1 ? ' disabled' : '') +
+                    '><i class="ph ph-caret-down" aria-hidden="true"></i></button>' +
+                    '<button type="button" class="admin-btn-icon social-edit" aria-label="Editar rede">' +
+                    '<i class="ph ph-pencil-simple" aria-hidden="true"></i></button>' +
+                    '<button type="button" class="admin-btn-icon social-delete" aria-label="Excluir rede">' +
+                    '<i class="ph ph-trash" aria-hidden="true"></i></button>' +
+                    '</div></td>';
+
+                tr.querySelector('.social-toggle').addEventListener('change', async (e) => {
+                    try {
+                        window.MockData.setSocialLinkEnabled(item.id, e.target.checked);
+                        await persistSocialRemote();
+                        showAlert(socialsFeedback, 'success', 'Visibilidade atualizada.');
+                    } catch (err) {
+                        e.target.checked = !e.target.checked;
+                        showAlert(socialsFeedback, 'error', err.message || 'Não foi possível atualizar.');
+                    }
+                });
+                tr.querySelector('.social-up').addEventListener('click', async () => {
+                    try {
+                        window.MockData.moveSocialLink(item.id, 'up');
+                        await persistSocialRemote();
+                        renderSocials();
+                        showAlert(socialsFeedback, 'success', 'Ordem atualizada.');
+                    } catch (err) {
+                        showAlert(socialsFeedback, 'error', err.message || 'Não foi possível reordenar.');
+                    }
+                });
+                tr.querySelector('.social-down').addEventListener('click', async () => {
+                    try {
+                        window.MockData.moveSocialLink(item.id, 'down');
+                        await persistSocialRemote();
+                        renderSocials();
+                        showAlert(socialsFeedback, 'success', 'Ordem atualizada.');
+                    } catch (err) {
+                        showAlert(socialsFeedback, 'error', err.message || 'Não foi possível reordenar.');
+                    }
+                });
+                tr.querySelector('.social-edit').addEventListener('click', () => openEditor(item));
+                tr.querySelector('.social-delete').addEventListener('click', () => removeSocial(item));
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openEditor(item) {
+            errorEl.hidden = true;
+            titleEl.textContent = item ? 'Editar rede' : 'Nova rede';
+            previousIdInput.value = item ? item.id : '';
+            labelInput.value = item ? item.label : '';
+            urlInput.value = item ? item.url : '';
+            iconSelect.value = item && item.icon ? item.icon : 'ph-link';
+            if (!iconSelect.value) iconSelect.value = 'ph-link';
+            enabledInput.checked = item ? item.enabled !== false : true;
+            syncIconPreview();
+            modal.show();
+            setTimeout(() => labelInput.focus(), 50);
+        }
+
+        async function removeSocial(item) {
+            const ok = window.confirm(
+                'Excluir a rede “' + item.label + '”? Ela deixará de aparecer no site.'
+            );
+            if (!ok) return;
+            try {
+                window.MockData.deleteSocialLink(item.id);
+                await persistSocialRemote();
+                renderSocials();
+                showAlert(socialsFeedback, 'success', 'Rede removida.');
+            } catch (err) {
+                showAlert(socialsFeedback, 'error', err.message || 'Não foi possível excluir.');
+            }
+        }
+
+        settingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const siteName = siteNameInput.value.trim();
+            const siteDescription = siteDescInput.value.trim();
+            const contactEmail = contactEmailInput.value.trim();
+            const supportEnabled = supportEnabledInput.checked;
+            const supportUrl = supportUrlInput.value.trim();
+
+            if (!siteName) {
+                showAlert(settingsFeedback, 'error', 'Informe o nome do site.');
+                siteNameInput.focus();
+                return;
+            }
+            siteNameInput.value = siteName;
+            if (!window.MockData.isValidEmail(contactEmail)) {
+                showAlert(settingsFeedback, 'error', 'Informe um e-mail válido.');
+                contactEmailInput.focus();
+                return;
+            }
+            if (supportEnabled && !supportUrl) {
+                showAlert(
+                    settingsFeedback,
+                    'error',
+                    'Informe a URL do Payment Link ou desative Me pague um café.'
+                );
+                supportUrlInput.focus();
+                return;
+            }
+            if (
+                supportEnabled &&
+                supportUrl &&
+                typeof window.MockData.isValidSocialUrl === 'function' &&
+                !window.MockData.isValidSocialUrl(supportUrl)
+            ) {
+                showAlert(
+                    settingsFeedback,
+                    'error',
+                    'Informe uma URL válida (http ou https) para Me pague um café.'
+                );
+                supportUrlInput.focus();
+                return;
+            }
+
+            try {
+                if (window.API && typeof window.API.saveSiteSettings === 'function') {
+                    await window.API.saveSiteSettings({
+                        siteName,
+                        siteDescription,
+                        contactEmail,
+                        supportUrl,
+                        supportEnabled
+                    });
+                } else {
+                    window.MockData.saveSiteSettings({
+                        siteName,
+                        siteDescription,
+                        contactEmail,
+                        supportUrl,
+                        supportEnabled
+                    });
+                }
+                showAlert(
+                    settingsFeedback,
+                    'success',
+                    'Identidade salva. O site e o painel usam estas informações automaticamente.'
+                );
+                if (window.AdminLayout && typeof window.AdminLayout.applySiteBrand === 'function') {
+                    window.AdminLayout.applySiteBrand();
+                }
+            } catch (err) {
+                showAlert(settingsFeedback, 'error', err.message || 'Não foi possível salvar.');
+            }
+        });
+
+        document.getElementById('btnNewSocial').addEventListener('click', () => openEditor(null));
+        iconSelect.addEventListener('change', syncIconPreview);
+
+        if (btnSaveLoginBg) {
+            btnSaveLoginBg.addEventListener('click', async () => {
+                const current = window.MockData.getSiteSettings();
+                const loginBackground =
+                    window.LoginBackground && typeof window.LoginBackground.readFormFields === 'function'
+                        ? window.LoginBackground.readFormFields(loginBgRoot)
+                        : window.MockData.normalizeLoginBackground({});
+                try {
+                    const payload = {
+                        siteName: current.siteName,
+                        siteDescription: current.siteDescription,
+                        contactEmail: current.contactEmail,
+                        supportUrl: current.supportUrl,
+                        supportEnabled: current.supportEnabled,
+                        loginBackground
+                    };
+                    if (window.API && typeof window.API.saveSiteSettings === 'function') {
+                        await window.API.saveSiteSettings(payload);
+                    } else {
+                        window.MockData.saveSiteSettings(payload);
+                    }
+                    showAlert(
+                        loginBgFeedback,
+                        'success',
+                        'Fundo do login salvo. Visitantes sem override local usam este padrão.'
+                    );
+                } catch (err) {
+                    showAlert(
+                        loginBgFeedback,
+                        'error',
+                        err.message || 'Não foi possível salvar o fundo do login.'
+                    );
+                }
+            });
+        }
+
+        socialForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorEl.hidden = true;
+            try {
+                window.MockData.upsertSocialLink({
+                    previousId: previousIdInput.value || undefined,
+                    id: previousIdInput.value || undefined,
+                    label: labelInput.value,
+                    url: urlInput.value,
+                    icon: iconSelect.value,
+                    enabled: enabledInput.checked
+                });
+                await persistSocialRemote();
+                modal.hide();
+                renderSocials();
+                showAlert(socialsFeedback, 'success', 'Rede salva. Footer e menu do site usam esta configuração.');
+            } catch (err) {
+                errorEl.textContent = err.message || 'Não foi possível salvar.';
+                errorEl.hidden = false;
+            }
+        });
+
+        fillIconOptions();
+        syncIconPreview();
+
+        if (loginBgRoot && window.LoginBackground) {
+            window.LoginBackground.bindSettingsForm(loginBgRoot);
+        }
+
+        (async function bootstrap() {
+            let settings;
+            try {
+                if (window.API && typeof window.API.getSiteSettings === 'function') {
+                    settings = await window.API.getSiteSettings();
+                    fillIdentityForm(settings);
+                } else {
+                    settings = window.MockData.getSiteSettings();
+                    fillIdentityForm(settings);
+                }
+            } catch (_) {
+                settings = window.MockData.getSiteSettings();
+                fillIdentityForm(settings);
+            }
+            if (loginBgRoot && window.LoginBackground) {
+                window.LoginBackground.fillFormFields(
+                    loginBgRoot,
+                    (settings && settings.loginBackground) ||
+                        window.MockData.getSiteSettings().loginBackground
+                );
+            }
+            renderSocials();
+
+            if (window.location.hash === '#redes') {
+                const section = document.getElementById('redes');
+                if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        })();
+    </script>
+</body>
+</html>

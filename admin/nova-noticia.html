@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <script>!function(){try{var t=localStorage.getItem("qualquer-tecla-theme");document.documentElement.setAttribute("data-theme",t==="dark"||t==="light"?t:"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}}();</script>
+    <script src="../assets/js/theme.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Nova Notícia | Qualquer Tecla Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/regular/Phosphor.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="../assets/vendor/phosphor/fill/Phosphor-Fill.woff2">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/regular/style.css">
+    <link rel="stylesheet" href="../assets/vendor/phosphor/fill/style.css">
+    <link rel="icon" href="../favicon.ico" sizes="any">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-32x32.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="../assets/img/brand/qt-favicon-16x16.png" type="image/png" sizes="16x16">
+    <link rel="apple-touch-icon" href="../assets/img/brand/qt-apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noticia+Text:ital,wght@0,400;0,700;1,400;1,700&family=Bricolage+Grotesque:wght@700;800&family=Genos:wght@700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="../assets/css/style.css?v=20261003pwastrip6">
+    <link rel="stylesheet" href="../assets/css/admin.css?v=20260917speak1">
+</head>
+<body class="admin-page article-editor-page">
+    <div class="admin-shell">
+        <aside id="admin-sidebar"></aside>
+        <main class="admin-content">
+            <div class="article-editor">
+
+                <!-- Chrome sticky: header + etapas -->
+                <div class="article-editor-top">
+                <header class="article-editor-header">
+                    <div class="article-editor-header-bar">
+                        <div class="article-editor-header-heading">
+                            <h1 class="article-editor-header-title" id="pageTitle">Nova Notícia</h1>
+                            <div class="article-editor-status-badges" id="save-badge-group" aria-live="polite">
+                                <span class="admin-badge admin-badge--muted" id="save-badge" title="Status da matéria" role="status">Rascunho</span>
+                            </div>
+                        </div>
+                        <div class="article-editor-actions" role="group" aria-label="Ações do artigo">
+                            <button type="button" class="admin-action admin-action--ghost" id="importMdBtn" title="Importar arquivo Markdown (.md)" aria-label="Importar arquivo Markdown (.md)">
+                                <i class="ph ph-file-md" aria-hidden="true"></i>
+                                <span class="admin-action-label">Importar .md</span>
+                            </button>
+                            <button type="button" class="admin-action admin-action--ghost" id="saveDraftBtn" title="Salvar rascunho" aria-label="Salvar rascunho">
+                                <i class="ph ph-floppy-disk" aria-hidden="true"></i>
+                                <span class="admin-action-label">Salvar</span>
+                            </button>
+                            <button type="button" class="admin-action admin-action--primary" id="headerPublishBtn" hidden aria-hidden="true" title="Publicar matéria" aria-label="Publicar matéria">
+                                <i class="ph ph-paper-plane-tilt" aria-hidden="true"></i>
+                                <span class="admin-action-label">Publicar</span>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="article-editor-header-note">
+                        <i class="ph ph-sparkle" aria-hidden="true"></i>
+                        <span class="article-editor-header-note-text">Envie um arquivo <code>.md</code>. O sistema lê o conteúdo e o front matter, preenche os campos e sugere capas automaticamente.</span>
+                    </p>
+                </header>
+
+                <!-- Navegação por etapas -->
+                <nav class="article-steps" aria-label="Etapas de criação">
+                    <button type="button" class="article-step-btn active" data-step="1" aria-current="step">
+                        <span class="article-step-num">1</span>
+                        <span class="step-label">Informações</span>
+                        <span class="step-label-short">Info</span>
+                    </button>
+                    <button type="button" class="article-step-btn" data-step="2">
+                        <span class="article-step-num">2</span>
+                        <span class="step-label">Conteúdo</span>
+                        <span class="step-label-short">Texto</span>
+                    </button>
+                    <button type="button" class="article-step-btn" data-step="3">
+                        <span class="article-step-num">3</span>
+                        <span class="step-label">Mídia</span>
+                        <span class="step-label-short">Mídia</span>
+                    </button>
+                    <button type="button" class="article-step-btn" data-step="4">
+                        <span class="article-step-num">4</span>
+                        <span class="step-label">Publicação</span>
+                        <span class="step-label-short">Pub</span>
+                    </button>
+                </nav>
+                </div>
+
+                <div class="auto-fill-banner" id="autoFillBanner" hidden role="status">
+                    <span class="auto-fill-banner-sparkle" aria-hidden="true">
+                        <i class="ph ph-sparkle"></i>
+                        <span class="auto-fill-sparkle-burst"></span>
+                    </span>
+                    <div class="auto-fill-banner-body">
+                        <strong>Campos preenchidos automaticamente</strong>
+                        <p class="mb-0">Revise a capa sugerida, ajuste o que precisar e publique.</p>
+                    </div>
+                    <button type="button" class="auto-fill-banner-close" id="autoFillBannerClose" aria-label="Fechar aviso">
+                        <i class="ph ph-x" aria-hidden="true"></i>
+                    </button>
+                </div>
+
+                <!-- Painéis -->
+                <div class="article-step-body">
+
+                    <!-- Etapa 1: Informações -->
+                    <section class="article-step-panel active" data-step-panel="1" aria-labelledby="step1-heading">
+                        <h2 class="article-section-heading" id="step1-heading">Informações da notícia</h2>
+                        <p class="article-section-desc">Manchete, resumo e editoria são detectados automaticamente a partir do conteúdo. Revise e ajuste se necessário.</p>
+
+                        <div class="article-field-group">
+                            <label class="article-field-label" for="titleInput">
+                                Manchete <span class="field-required-mark">*</span>
+                            </label>
+                            <input type="text" class="form-control form-control-lg" id="titleInput" placeholder="Título principal da matéria" required autocomplete="off">
+                        </div>
+
+                        <div class="article-field-group">
+                            <label class="article-field-label" for="subtitleInput">
+                                Subtítulo / resumo
+                                <span class="field-optional-badge">Opcional</span>
+                            </label>
+                            <textarea class="form-control" id="subtitleInput" rows="2" placeholder="Linha de apoio exibida abaixo da manchete"></textarea>
+                        </div>
+
+                        <div class="article-field-row">
+                            <div class="article-field-group">
+                                <label class="article-field-label" for="catSelect">
+                                    Editoria <span class="field-required-mark">*</span>
+                                </label>
+                                <select class="form-select" id="catSelect" required></select>
+                            </div>
+                            <div class="article-field-group">
+                                <label class="article-field-label" for="authorSelect">
+                                    Autor
+                                </label>
+                                <select class="form-select" id="authorSelect"></select>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Etapa 2: Conteúdo -->
+                    <section class="article-step-panel article-step-panel-wide" data-step-panel="2" aria-labelledby="step2-heading">
+                        <div class="article-step-intro">
+                            <h2 class="article-section-heading" id="step2-heading">Corpo da matéria</h2>
+                            <p class="article-section-desc">Cole ou escreva em Markdown. O sistema extrai título, editoria, tags e SEO automaticamente.</p>
+                        </div>
+
+                        <div class="md-editor-wrap" id="mdEditor">
+                            <div class="md-editor-chrome">
+                                <div class="md-editor-tabs" role="tablist" aria-label="Modo do editor">
+                                    <button type="button" class="md-editor-tab active" data-tab="write" role="tab" aria-selected="true" aria-controls="writePane" id="mdTabWrite">
+                                        <i class="ph ph-pencil-simple" aria-hidden="true"></i>
+                                        <span>Escrever</span>
+                                    </button>
+                                    <button type="button" class="md-editor-tab" data-tab="preview" role="tab" aria-selected="false" aria-controls="previewPaneWrap" id="mdTabPreview">
+                                        <i class="ph ph-eye" aria-hidden="true"></i>
+                                        <span>Pré-visualizar</span>
+                                    </button>
+                                    <button type="button" class="md-editor-expand" id="mdExpandBtn" aria-pressed="false" aria-label="Abrir editor em tela cheia" title="Tela cheia">
+                                        <i class="ph ph-arrows-out" aria-hidden="true"></i>
+                                        <span class="md-editor-expand-label">Sair da tela cheia</span>
+                                    </button>
+                                </div>
+
+                                <div class="md-toolbar" role="toolbar" aria-label="Formatação Markdown">
+                                    <div class="md-toolbar-scroll">
+                                        <div class="md-toolbar-group" role="group" aria-label="Texto">
+                                            <button type="button" class="md-toolbar-btn" data-md="bold" title="Negrito" aria-label="Negrito"><i class="ph ph-text-b" aria-hidden="true"></i></button>
+                                            <button type="button" class="md-toolbar-btn" data-md="italic" title="Itálico" aria-label="Itálico"><i class="ph ph-text-italic" aria-hidden="true"></i></button>
+                                            <button type="button" class="md-toolbar-btn" data-md="link" title="Link" aria-label="Link"><i class="ph ph-link" aria-hidden="true"></i></button>
+                                        </div>
+                                        <span class="md-toolbar-sep" aria-hidden="true"></span>
+                                        <div class="md-toolbar-group" role="group" aria-label="Estrutura">
+                                            <button type="button" class="md-toolbar-btn" data-md="h2" title="Título" aria-label="Título"><i class="ph ph-text-h-two" aria-hidden="true"></i></button>
+                                            <button type="button" class="md-toolbar-btn" data-md="ul" title="Lista" aria-label="Lista"><i class="ph ph-list-bullets" aria-hidden="true"></i></button>
+                                            <button type="button" class="md-toolbar-btn" data-md="quote" title="Citação" aria-label="Citação"><i class="ph ph-quotes" aria-hidden="true"></i></button>
+                                            <button type="button" class="md-toolbar-btn" data-md="code" title="Código" aria-label="Código"><i class="ph ph-code" aria-hidden="true"></i></button>
+                                        </div>
+                                        <span class="md-toolbar-sep" aria-hidden="true"></span>
+                                        <div class="md-toolbar-group" role="group" aria-label="Inserir">
+                                            <button type="button" class="md-toolbar-btn" data-md="h3" title="Subtítulo" aria-label="Subtítulo"><i class="ph ph-text-h-three" aria-hidden="true"></i></button>
+                                            <button type="button" class="md-toolbar-btn" data-md="ol" title="Lista numerada" aria-label="Lista numerada"><i class="ph ph-list-numbers" aria-hidden="true"></i></button>
+                                            <button type="button" class="md-toolbar-btn" data-md="image" title="Inserir imagem da internet" aria-label="Inserir imagem da internet"><i class="ph ph-image" aria-hidden="true"></i></button>
+                                            <button type="button" class="md-toolbar-btn" data-md="embed" title="Incorporar rede social ou vídeo" aria-label="Incorporar rede social ou vídeo"><i class="ph ph-share-network" aria-hidden="true"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="md-textarea-pane active" id="writePane" role="tabpanel" aria-labelledby="mdTabWrite">
+                                <textarea class="md-textarea" id="contentMarkdown" placeholder="Escreva o artigo em Markdown…&#10;&#10;## Subtítulo&#10;&#10;Parágrafo com **negrito** e *itálico*.&#10;&#10;- Item de lista&#10;- Outro item" enterkeyhint="enter" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true"></textarea>
+                            </div>
+                            <div class="md-preview-pane" id="previewPaneWrap" role="tabpanel" aria-labelledby="mdTabPreview" hidden>
+                                <div class="editorial-preview-frame">
+                                    <div class="article-content font-editorial" id="previewPane" aria-live="polite"></div>
+                                    <div class="article-outro" id="previewOutro" hidden></div>
+                                </div>
+                            </div>
+
+                            <footer class="md-editor-status" aria-label="Status do texto">
+                                <div class="md-editor-meters" aria-live="polite">
+                                    <span class="md-meter" title="Palavras">
+                                        <i class="ph ph-text-aa" aria-hidden="true"></i>
+                                        <strong id="mdWordCount">0</strong>
+                                        <span class="md-meter-unit">palavras</span>
+                                    </span>
+                                    <span class="md-meter md-meter--muted" title="Caracteres">
+                                        <strong id="mdCharCount">0</strong>
+                                        <span class="md-meter-unit">car.</span>
+                                    </span>
+                                    <span class="md-meter" title="Tempo de leitura estimado">
+                                        <i class="ph ph-clock" aria-hidden="true"></i>
+                                        <strong id="mdReadTime">1</strong>
+                                        <span class="md-meter-unit">min</span>
+                                    </span>
+                                </div>
+                                <span class="md-editor-format" title="Formatação Markdown">
+                                    <i class="ph ph-markdown-logo" aria-hidden="true"></i>
+                                    <span>Markdown</span>
+                                </span>
+                            </footer>
+                        </div>
+                    </section>
+
+                    <!-- Etapa 3: Mídia -->
+                    <section class="article-step-panel" data-step-panel="3" aria-labelledby="step3-heading">
+                        <h2 class="article-section-heading" id="step3-heading">Imagem e mídia</h2>
+                        <p class="article-section-desc">Capa e legenda sugeridas automaticamente. Toque na pré-visualização para escolher ou alterar a imagem.</p>
+
+                        <div class="article-field-group">
+                            <label class="article-field-label" id="featuredImageLabel">
+                                Imagem de capa
+                                <span class="field-optional-badge">Opcional</span>
+                            </label>
+                            <button
+                                type="button"
+                                class="featured-image-preview"
+                                id="featuredPreviewBtn"
+                                aria-labelledby="featuredImageLabel"
+                                aria-describedby="featuredImageHint"
+                                aria-label="Escolher ou alterar imagem de capa"
+                            >
+                                <img id="featuredImg" src="../assets/img/placeholder-article.svg" alt="" width="1280" height="720" decoding="async">
+                                <span class="featured-image-preview-cue" aria-hidden="true">
+                                    <i class="ph ph-image"></i>
+                                    <span>Toque para escolher ou alterar</span>
+                                </span>
+                            </button>
+                            <p class="article-field-hint" id="featuredImageHint">Clique na pré-visualização para buscar uma imagem ou colar uma URL. Recomendado: 1280×720 px ou 16:9.</p>
+                        </div>
+
+                        <div class="article-field-group" id="googleImagesSuggestionsWrap" hidden>
+                            <label class="article-field-label">Sugestões de capa</label>
+                            <p class="article-field-hint mb-2">Selecionadas com base no título, editoria e palavras-chave do artigo.</p>
+                            <div class="image-pick-suggestions-loading" id="googleImagesSuggestionsLoading" hidden aria-live="polite">
+                                <i class="ph ph-spinner" aria-hidden="true"></i>
+                                <span>Buscando imagens relacionadas…</span>
+                            </div>
+                            <div class="image-pick-suggestions-grid image-pick-grid" id="googleImagesSuggestionsGrid"></div>
+                            <p id="googleImagesSuggestionsEmpty" class="text-secondary small mb-0" hidden>Nenhuma sugestão disponível. Toque na pré-visualização da capa para buscar.</p>
+                        </div>
+
+                        <div class="article-field-group">
+                            <label class="article-field-label" for="captionInput">
+                                Legenda da capa
+                                <span class="field-optional-badge">Opcional</span>
+                            </label>
+                            <input type="text" class="form-control" id="captionInput" placeholder="Créditos fotográficos e descrição">
+                        </div>
+                    </section>
+
+                    <!-- Etapa 4: Publicação -->
+                    <section class="article-step-panel" data-step-panel="4" aria-labelledby="step4-heading">
+                        <h2 class="article-section-heading" id="step4-heading">Revisar e publicar</h2>
+                        <p class="article-section-desc">Confira o resumo gerado automaticamente. Publique ou salve como rascunho.</p>
+
+                        <div class="publish-summary" aria-label="Resumo da matéria">
+                            <div class="publish-summary-row">
+                                <span class="publish-summary-label">Manchete</span>
+                                <span class="publish-summary-value" id="summaryTitle">—</span>
+                            </div>
+                            <div class="publish-summary-row">
+                                <span class="publish-summary-label">Editoria</span>
+                                <span class="publish-summary-value" id="summaryCategory">—</span>
+                            </div>
+                            <div class="publish-summary-row">
+                                <span class="publish-summary-label">Autor</span>
+                                <span class="publish-summary-value" id="summaryAuthor">—</span>
+                            </div>
+                            <div class="publish-summary-row">
+                                <span class="publish-summary-label">Tempo de leitura</span>
+                                <span class="publish-summary-value" id="summaryReadingTime">—</span>
+                            </div>
+                            <div class="publish-summary-row">
+                                <span class="publish-summary-label">Tags</span>
+                                <span class="publish-summary-value" id="summaryTags">—</span>
+                            </div>
+                            <div class="publish-summary-row">
+                                <span class="publish-summary-label">Palavras (aprox.)</span>
+                                <span class="publish-summary-value" id="summaryWords">—</span>
+                            </div>
+                            <div class="publish-summary-row">
+                                <span class="publish-summary-label">Ação</span>
+                                <span class="publish-summary-value" id="summaryStatus">Publicar</span>
+                            </div>
+                        </div>
+
+                        <div class="article-field-group">
+                            <label class="article-field-label" for="slugInput">
+                                Slug (URL)
+                                <span class="field-optional-badge">Automático</span>
+                            </label>
+                            <input type="text" class="form-control text-muted" id="slugInput" readonly>
+                            <p class="article-field-hint">Gerado a partir da manchete. Fixado após o primeiro salvamento.</p>
+                        </div>
+
+                        <div class="article-field-group">
+                            <label class="article-field-label" for="seoDesc">
+                                Descrição SEO
+                                <span class="field-optional-badge">Opcional</span>
+                            </label>
+                            <textarea class="form-control" id="seoDesc" rows="2" placeholder="Resumo para buscadores e redes sociais"></textarea>
+                        </div>
+
+                        <div class="article-field-group article-ai-summary-field">
+                            <div class="article-ai-summary-field-head">
+                                <label class="article-field-label" for="aiSummaryInput">
+                                    Resumo
+                                </label>
+                                <button type="button" class="admin-action admin-action--ghost" id="aiSummaryGenerateBtn">
+                                    <i class="ph ph-sparkle" aria-hidden="true"></i>
+                                    <span>Gerar com Mary AI</span>
+                                </button>
+                            </div>
+                            <textarea class="form-control" id="aiSummaryInput" rows="4" placeholder="Opcional: rascunho para a Mary AI e para o áudio do resumo."></textarea>
+                            <p class="article-field-hint">Usado pela Mary AI e pelo áudio do resumo. Ao publicar, a Mary AI gera ou atualiza este texto; se falhar, mantém o que estiver no campo.</p>
+                            <p class="article-field-hint" id="aiSummaryStatus" hidden></p>
+                        </div>
+
+                        <div class="article-field-group article-audio-field">
+                            <div class="article-ai-summary-field-head">
+                                <label class="article-field-label" id="articleAudioLabel">
+                                    Áudios (Mary AI)
+                                    <span class="field-optional-badge">Opcional</span>
+                                </label>
+                                <button type="button" class="admin-action admin-action--ghost" id="articleAudioGenerateBtn" aria-describedby="articleAudioStatus">
+                                    <i class="ph ph-waveform" aria-hidden="true"></i>
+                                    <span>Gerar áudios</span>
+                                </button>
+                            </div>
+                            <p class="article-field-hint">Gera o WAV do resumo e da matéria com Mary AI. Sem áudio, Ouvir e Mary ficam desabilitados.</p>
+                            <p class="article-field-hint" id="articleAudioStatus" role="status">Áudio ainda não gerado — Ouvir desabilitado.</p>
+                        </div>
+
+                        <div class="serp-preview" id="serpPreview" aria-label="Pré-visualização nos resultados de busca">
+                            <p class="serp-preview-kicker">Pré-visualização na busca</p>
+                            <div class="serp-preview-card">
+                                <p class="serp-preview-url" id="serpPreviewUrl">qualquertecla.com.br › notícia</p>
+                                <p class="serp-preview-title" id="serpPreviewTitle">Título da matéria</p>
+                                <p class="serp-preview-desc" id="serpPreviewDesc">A descrição SEO aparece aqui nos resultados de busca.</p>
+                            </div>
+                        </div>
+
+                        <div class="article-field-group">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="destaqueSwitch" disabled aria-disabled="true">
+                                <label class="form-check-label fw-semibold" for="destaqueSwitch">Destaque no Hero</label>
+                                <p class="article-field-hint mb-0 mt-1">Automático: o Hero sempre exibe o artigo publicado mais recente.</p>
+                            </div>
+                        </div>
+
+                        <button type="button" class="article-advanced-toggle" id="advancedToggle" aria-expanded="false">
+                            <i class="ph ph-caret-down" aria-hidden="true"></i>
+                            Opções avançadas (SEO, fonte, tags)
+                        </button>
+
+                        <div class="article-advanced-fields" id="advancedFields">
+                            <div class="article-field-group">
+                                <label class="article-field-label" for="seoTitle">
+                                    SEO Title
+                                    <span class="field-optional-badge">Opcional</span>
+                                </label>
+                                <input type="text" class="form-control" id="seoTitle" placeholder="Título para buscadores">
+                            </div>
+                            <div class="article-field-group">
+                                <label class="article-field-label" for="keywordsInput">
+                                    Palavras-chave SEO
+                                    <span class="field-optional-badge">Automático</span>
+                                </label>
+                                <input type="text" class="form-control" id="keywordsInput" placeholder="Geradas a partir do conteúdo">
+                            </div>
+                            <div class="article-field-group">
+                                <label class="article-field-label" for="tagsInput">
+                                    Tags
+                                    <span class="field-optional-badge">Opcional</span>
+                                </label>
+                                <input type="text" class="form-control" id="tagsInput" placeholder="tecnologia, games, ciência (separadas por vírgula)">
+                            </div>
+                            <div class="article-field-group">
+                                <label class="article-field-label" for="dateInput">
+                                    Data de publicação
+                                    <span class="field-optional-badge">Opcional</span>
+                                </label>
+                                <input type="date" class="form-control" id="dateInput">
+                            </div>
+                            <div class="article-field-group">
+                                <label class="article-field-label" for="sourceNameInput">
+                                    Fonte da matéria
+                                    <span class="field-optional-badge">Opcional</span>
+                                </label>
+                                <input type="text" class="form-control" id="sourceNameInput" placeholder="Ex.: Exame, The Verge" autocomplete="organization">
+                            </div>
+                            <div class="article-field-group">
+                                <label class="article-field-label" for="sourceUrlInput">
+                                    Link original
+                                    <span class="field-optional-badge">Opcional</span>
+                                </label>
+                                <input type="url" class="form-control" id="sourceUrlInput" placeholder="https://" inputmode="url">
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <p id="editorToast" class="article-editor-toast" hidden role="status" aria-live="polite" aria-atomic="true"></p>
+
+                <!-- Rodapé de navegação -->
+                <footer class="article-step-footer">
+                    <button type="button" class="admin-action admin-action--ghost" id="prevStepBtn" disabled>
+                        <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                        <span>Anterior</span>
+                    </button>
+                    <span class="article-step-footer-hint" id="stepFooterHint" aria-label="Etapa 1 de 4">1 / 4</span>
+                    <button type="button" class="admin-action admin-action--primary" id="nextStepBtn">
+                        <span>Próximo</span>
+                        <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                    </button>
+                </footer>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Importar Markdown -->
+    <div class="modal fade" id="importMdModal" tabindex="-1" aria-labelledby="importMdTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg modal-fullscreen-sm-down">
+            <div class="modal-content import-md-modal">
+                <div class="modal-header import-md-modal-header">
+                    <div class="import-md-modal-heading admin-modal-heading">
+                        <div class="import-md-modal-heading-text">
+                            <h2 class="modal-title" id="importMdTitle">Importar Markdown</h2>
+                            <p class="admin-modal-lead" id="importMdLead">
+                                <span class="import-md-lead-full">Arraste um arquivo ou selecione do dispositivo. Front matter e corpo são detectados automaticamente.</span>
+                                <span class="import-md-lead-short">Selecione um .md — campos detectados.</span>
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button" class="admin-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
+                        <i class="ph ph-x" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="modal-body admin-modal-body import-md-modal-body">
+                    <div
+                        class="import-md-dropzone"
+                        id="importDropzone"
+                        aria-busy="false"
+                    >
+                        <div class="import-md-dropzone-idle" id="importDropzoneIdle">
+                            <span class="import-md-dropzone-glyph" aria-hidden="true">
+                                <i class="ph ph-upload-simple"></i>
+                            </span>
+                            <div class="import-md-dropzone-copy">
+                                <p class="import-md-dropzone-title">
+                                    <span class="import-md-dz-title-full">Solte o .md aqui</span>
+                                    <span class="import-md-dz-title-short">Escolher arquivo</span>
+                                </p>
+                                <p class="import-md-dropzone-hint">.md ou .markdown · YAML opcional</p>
+                            </div>
+                            <button type="button" class="admin-action admin-action--primary" id="importPickBtn" aria-label="Escolher arquivo Markdown">
+                                <i class="ph ph-folder-open" aria-hidden="true"></i>
+                                <span class="import-md-pick-label-full">Selecionar .md</span>
+                                <span class="import-md-pick-label-short">Escolher arquivo</span>
+                            </button>
+                        </div>
+
+                        <div class="import-md-dropzone-loading" id="importLoading" hidden role="status">
+                            <i class="ph ph-spinner" aria-hidden="true"></i>
+                            <div class="import-md-dropzone-loading-text">
+                                <strong>Analisando…</strong>
+                                <span class="import-md-loading-detail">Extraindo campos e pré-visualizando</span>
+                            </div>
+                        </div>
+
+                        <div class="import-md-file" id="importFileChip" hidden>
+                            <span class="import-md-file-icon" aria-hidden="true">
+                                <i class="ph ph-file-md"></i>
+                            </span>
+                            <div class="import-md-file-text">
+                                <span class="import-md-file-name" id="importFileName"></span>
+                                <span class="import-md-file-meta" id="importFileMeta">Pronto para revisar</span>
+                            </div>
+                            <button type="button" class="admin-action admin-action--ghost import-md-file-change" id="importChangeBtn" aria-label="Trocar arquivo Markdown">
+                                <i class="ph ph-arrows-clockwise" aria-hidden="true"></i>
+                                <span class="import-md-file-change-label">Trocar</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <p id="importError" class="admin-alert admin-alert--error" hidden role="alert"></p>
+
+                    <div id="importPreview" class="import-preview-box" hidden>
+                        <div class="import-preview-header">
+                            <span class="import-preview-header-label">
+                                <i class="ph ph-eye" aria-hidden="true"></i>
+                                Pré-visualização
+                            </span>
+                            <span class="import-preview-header-hint">Revise antes de aplicar</span>
+                        </div>
+                        <div class="import-preview-content">
+                            <div class="import-preview-section">
+                                <h3 class="import-preview-label">Campos detectados</h3>
+                                <ul class="import-meta-list" id="importMetaList"></ul>
+                            </div>
+                            <div class="import-preview-section">
+                                <h3 class="import-preview-label">Conteúdo renderizado</h3>
+                                <div class="editorial-preview-frame import-preview-frame">
+                                    <div class="import-preview-body article-content font-editorial" id="importPreviewBody"></div>
+                                    <div class="article-outro" id="importPreviewOutro" hidden></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer admin-modal-footer import-md-modal-footer">
+                    <button type="button" class="admin-action admin-action--ghost" data-bs-dismiss="modal">
+                        <span>Cancelar</span>
+                    </button>
+                    <button type="button" class="admin-action admin-action--primary" id="importApplyBtn" disabled aria-label="Aplicar importação">
+                        <i class="ph ph-check" aria-hidden="true"></i>
+                        <span class="import-md-apply-full">Aplicar ao editor</span>
+                        <span class="import-md-apply-short">Aplicar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Incorporar rede / vídeo -->
+    <div class="modal fade" id="socialEmbedModal" tabindex="-1" aria-labelledby="socialEmbedTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="admin-modal-heading">
+                        <h2 class="modal-title" id="socialEmbedTitle">Incorporar da internet</h2>
+                        <p class="admin-modal-lead">
+                            Cole o link do post ou vídeo. Suporta YouTube, X, Instagram, Facebook, TikTok, Vimeo, Spotify e Reddit.
+                        </p>
+                    </div>
+                    <button type="button" class="admin-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
+                        <i class="ph ph-x" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="modal-body admin-modal-body">
+                    <div class="article-field-group mb-0">
+                        <label class="article-field-label" for="socialEmbedUrlInput">Link</label>
+                        <input
+                            type="url"
+                            class="form-control"
+                            id="socialEmbedUrlInput"
+                            placeholder="https://x.com/…/status/… ou youtube.com/watch?v=…"
+                            inputmode="url"
+                            autocomplete="off"
+                            enterkeyhint="done"
+                        >
+                    </div>
+                    <p id="socialEmbedHint" class="article-field-hint" hidden></p>
+                    <p id="socialEmbedError" class="admin-alert admin-alert--error" hidden role="alert"></p>
+                </div>
+                <div class="modal-footer admin-modal-footer">
+                    <button type="button" class="admin-action admin-action--ghost" data-bs-dismiss="modal">
+                        <span>Cancelar</span>
+                    </button>
+                    <button type="button" class="admin-action admin-action--primary" id="socialEmbedConfirm">
+                        <i class="ph ph-share-network" aria-hidden="true"></i>
+                        <span>Incorporar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Imagem (busca + URL) -->
+    <div class="modal fade" id="imageUrlModal" tabindex="-1" aria-labelledby="imageUrlTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
+            <div class="modal-content image-pick-modal">
+                <div class="modal-header image-pick-modal-header">
+                    <div class="image-pick-modal-heading admin-modal-heading">
+                        <h2 class="modal-title" id="imageUrlTitle">Inserir imagem</h2>
+                        <p class="image-pick-modal-lead admin-modal-lead" id="imageUrlLead">Busque uma imagem</p>
+                    </div>
+                    <button type="button" class="admin-modal-close" data-bs-dismiss="modal" aria-label="Fechar">
+                        <i class="ph ph-x" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="modal-body admin-modal-body image-pick-modal-body">
+                    <p id="imageUrlUnavailable" class="admin-alert admin-alert--loading" hidden role="status">
+                        Para buscar imagens, configure <code>SERPER_API_KEY</code>
+                        (grátis em <a href="https://serper.dev" target="_blank" rel="noopener noreferrer">serper.dev</a>).
+                        Sem a chave, use a opção avançada para colar uma URL.
+                    </p>
+
+                    <section class="image-pick-search" aria-label="Busca">
+                        <div class="image-pick-search-bar" role="search">
+                            <label class="visually-hidden" for="imageUrlSearchInput">Buscar imagens</label>
+                            <div class="image-pick-search-field">
+                                <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                                <input
+                                    type="search"
+                                    class="form-control"
+                                    id="imageUrlSearchInput"
+                                    placeholder="Ex.: marvel, tecnologia, esportes…"
+                                    autocomplete="off"
+                                    enterkeyhint="search"
+                                    spellcheck="false"
+                                >
+                                <button
+                                    type="button"
+                                    class="image-pick-search-clear"
+                                    id="imageUrlSearchClear"
+                                    hidden
+                                    aria-label="Limpar busca"
+                                    title="Limpar busca"
+                                >
+                                    <i class="ph ph-eraser" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <button type="button" class="admin-action admin-action--primary image-pick-search-submit" id="imageUrlSearchBtn">
+                                <span>Buscar</span>
+                            </button>
+                        </div>
+                    </section>
+
+                    <section class="image-pick-results" aria-label="Resultados">
+                        <p id="imageUrlSearchMeta" class="image-pick-result-meta" hidden></p>
+                        <p id="imageUrlSearchError" class="admin-alert admin-alert--error" hidden role="alert"></p>
+
+                        <div class="image-pick-loading" id="imageUrlSearchLoading" hidden aria-live="polite">
+                            <i class="ph ph-spinner" aria-hidden="true"></i>
+                            <span>Buscando imagens…</span>
+                        </div>
+
+                        <div class="image-pick-grid-shell">
+                            <div class="image-pick-grid" id="imageUrlSearchGrid" role="listbox" aria-label="Resultados da busca de imagens"></div>
+                            <div id="imageUrlSearchSentinel" class="image-pick-grid-sentinel" hidden aria-hidden="true"></div>
+                            <p id="imageUrlSearchMore" class="image-pick-loading-more" hidden aria-live="polite">
+                                <i class="ph ph-spinner" aria-hidden="true"></i>
+                                <span>Carregando mais…</span>
+                            </p>
+                        </div>
+
+                        <p id="imageUrlSearchEmpty" class="admin-empty image-pick-empty" hidden>
+                            <span class="admin-empty-icon"><i class="ph ph-image" aria-hidden="true"></i></span>
+                            <span class="admin-empty-title d-block">Nenhuma imagem encontrada</span>
+                            <span class="admin-empty-text">Tente outro termo ou abra as opções avançadas para colar uma URL.</span>
+                        </p>
+                    </section>
+
+                    <p class="admin-modal-footnote image-pick-footnote">
+                        Clique em uma imagem para usar. Verifique direitos de uso antes de publicar.
+                    </p>
+                </div>
+
+                <div class="modal-footer admin-modal-footer image-pick-modal-footer">
+                    <section class="image-pick-advanced" aria-label="Opções avançadas">
+                        <button
+                            type="button"
+                            class="article-advanced-toggle image-pick-advanced-toggle"
+                            id="imageUrlAdvancedToggle"
+                            aria-expanded="false"
+                            aria-controls="imageUrlAdvancedFields"
+                        >
+                            <i class="ph ph-caret-down" aria-hidden="true"></i>
+                            Avançado
+                        </button>
+
+                        <div class="article-advanced-fields image-pick-url" id="imageUrlAdvancedFields">
+                            <label class="article-field-label" for="imageUrlInput">URL da imagem</label>
+                            <input
+                                type="url"
+                                class="form-control"
+                                id="imageUrlInput"
+                                placeholder="https://exemplo.com/foto.jpg"
+                                inputmode="url"
+                                autocomplete="off"
+                                enterkeyhint="done"
+                            >
+                            <div class="article-field-group mb-0 mt-3" id="imageAltWrap">
+                                <label class="article-field-label" for="imageAltInput">
+                                    Texto alternativo
+                                    <span class="field-optional-badge">Opcional</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="imageAltInput"
+                                    placeholder="Preenchido automaticamente"
+                                    autocomplete="off"
+                                >
+                            </div>
+                            <p id="imageUrlError" class="admin-alert admin-alert--error mt-2 mb-0" hidden role="alert"></p>
+                        </div>
+                    </section>
+
+                    <div class="image-pick-modal-actions">
+                        <button type="button" class="admin-action admin-action--ghost" data-bs-dismiss="modal">
+                            <span>Cancelar</span>
+                        </button>
+                        <button type="button" class="admin-action admin-action--primary" id="imageUrlConfirm" hidden>
+                            <i class="ph ph-link" aria-hidden="true"></i>
+                            <span>Usar URL</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="importFileInput" accept=".md,.markdown,text/markdown" class="visually-hidden" tabindex="-1" aria-hidden="true">
+
+    <script>window.SITE_BASE = '../';</script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script src="../config/google-images.js"></script>
+    <script src="../assets/js/utils/html.js?v=20260828inv"></script>
+    <script src="../assets/js/utils/markdown.js?v=20260827editorstate7"></script>
+    <script src="../assets/js/admin/media-store.js?v=20260825mediaref"></script>
+    <script src="../assets/js/admin/article-analyzer.js?v=20260829games1"></script>
+    <script src="../assets/js/admin/google-images-search.js?v=20260826liveserve"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../config/supabase.js"></script>
+    <script src="../assets/js/api.js?v=20260831support1"></script>
+    <script src="../assets/js/data/mock-data.js?v=20260917spotify1"></script>
+    <script src="../assets/js/admin/auth-stub.js?v=20260826risk"></script>
+    <script src="../assets/js/admin/layout.js?v=20260909brand6"></script>
+    <script src="../assets/js/admin/article-editor.js?v=20260918pubskip1"></script>
+    <script>
+        if (!window.AdminAuth.requireAuth()) throw new Error('auth');
+        window.AdminLayout.mountSidebar();
+        window.ArticleEditor.init();
+    </script>
+</body>
+</html>

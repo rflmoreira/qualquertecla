@@ -1,0 +1,15 @@
+{
+  "name": "qualquer-tecla",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node scripts/serve.mjs",
+    "check:js": "node scripts/check-js.mjs",
+    "sitemap": "node scripts/seo/generate-sitemap.mjs",
+    "test": "node scripts/test/smoke.mjs",
+    "test:unit": "node scripts/test/smoke.mjs"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^11.1.0"
+  }
+}
