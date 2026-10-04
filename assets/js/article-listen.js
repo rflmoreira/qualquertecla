@@ -21,6 +21,309 @@
         }
     }
 
+    /**
+     * Timeline observacional (somente ?mediaSessionDebug=1).
+     * NÃO monkey-patcha HTMLMediaElement.prototype.
+     * NÃO altera semântica de play/pause/load — só registra nos call sites.
+     */
+    const MaryAudioTrace = (function createMaryAudioTrace() {
+        const enabled = (() => {
+            try {
+                return typeof location !== 'undefined' &&
+                    String(location.search || '').includes('mediaSessionDebug=1');
+            } catch (_) {
+                return false;
+            }
+        })();
+
+        const noop = () => {};
+        if (!enabled) {
+            return {
+                enabled: false,
+                log: noop,
+                mark: noop,
+                watchMedia: noop,
+                trackPlay: (_el, promise) => promise,
+                noteEl: noop,
+                getCtrlId: () => '',
+                snapshotEl: () => null
+            };
+        }
+
+        const STORAGE_KEY = '__maryAudioTimelineV1';
+        const MAX_ENTRIES = 800;
+        const timeline = [];
+        const elIds = new WeakMap();
+        let elSeq = 0;
+        let ctrlSeq = 0;
+        const watched = new WeakSet();
+        const watchedList = [];
+        const stallState = new WeakMap();
+        const MEDIA_EVENTS = [
+            'play', 'playing', 'pause', 'waiting', 'stalled', 'suspend',
+            'ended', 'error', 'emptied', 'abort', 'loadedmetadata',
+            'canplay', 'canplaythrough', 'loadstart', 'durationchange'
+        ];
+
+        function srcTail(elOrUrl) {
+            const raw = typeof elOrUrl === 'string'
+                ? elOrUrl
+                : ((elOrUrl && (elOrUrl.currentSrc || elOrUrl.src)) || '');
+            const s = String(raw || '');
+            if (!s) return '';
+            const parts = s.split('/').filter(Boolean);
+            return parts.slice(-3).join('/');
+        }
+
+        function noteEl(el, role) {
+            if (!el || typeof el !== 'object') return '';
+            if (!elIds.has(el)) {
+                elSeq += 1;
+                elIds.set(el, (role ? role + '-' : 'el-') + elSeq);
+            }
+            return elIds.get(el);
+        }
+
+        function getCtrlId(ctrl) {
+            if (!ctrl || typeof ctrl !== 'object') return '';
+            if (ctrl.__maryTraceCtrlId) return ctrl.__maryTraceCtrlId;
+            ctrlSeq += 1;
+            ctrl.__maryTraceCtrlId = 'ctrl-' + ctrlSeq;
+            return ctrl.__maryTraceCtrlId;
+        }
+
+        function snapshotEl(el) {
+            if (!el) return null;
+            let err = null;
+            try {
+                if (el.error) {
+                    err = { code: el.error.code, message: el.error.message || '' };
+                }
+            } catch (_) { /* ignore */ }
+            return {
+                elId: noteEl(el),
+                src: srcTail(el),
+                paused: !!el.paused,
+                ended: !!el.ended,
+                readyState: el.readyState,
+                networkState: el.networkState,
+                currentTime: Number.isFinite(el.currentTime) ? Number(el.currentTime.toFixed(3)) : el.currentTime,
+                duration: Number.isFinite(el.duration) ? Number(el.duration.toFixed(3)) : String(el.duration),
+                muted: !!el.muted,
+                volume: el.volume,
+                inDom: !!(el.parentNode),
+                error: err
+            };
+        }
+
+        function activeCtrlSnap() {
+            const ctrl = global.__maryActiveFileController;
+            if (!ctrl) return { ctrlId: null, ctrlUrl: null, ctrlPlaying: null, transitioning: null };
+            return {
+                ctrlId: getCtrlId(ctrl),
+                ctrlUrl: typeof ctrl.getUrl === 'function' ? srcTail(ctrl.getUrl()) : null,
+                ctrlPlaying: typeof ctrl.isPlaying === 'function' ? ctrl.isPlaying() : null,
+                transitioning: typeof ctrl.isTransitioning === 'function' ? ctrl.isTransitioning() : null
+            };
+        }
+
+        function persist() {
+            try {
+                sessionStorage.setItem(STORAGE_KEY, JSON.stringify(timeline.slice(-MAX_ENTRIES)));
+            } catch (_) { /* ignore quota */ }
+        }
+
+        function log(event, details) {
+            const el = details && details.el;
+            const snap = el ? snapshotEl(el) : null;
+            const ctrlSnap = activeCtrlSnap();
+            const entry = {
+                ts: new Date().toISOString(),
+                tPerf: typeof performance !== 'undefined' ? performance.now() : 0,
+                visibilityState: typeof document !== 'undefined' ? document.visibilityState : null,
+                event: String(event || ''),
+                elId: snap ? snap.elId : (details && details.elId) || null,
+                src: snap ? snap.src : (details && details.src) || null,
+                paused: snap ? snap.paused : null,
+                ended: snap ? snap.ended : null,
+                readyState: snap ? snap.readyState : null,
+                networkState: snap ? snap.networkState : null,
+                currentTime: snap ? snap.currentTime : null,
+                duration: snap ? snap.duration : null,
+                inDom: snap ? snap.inDom : null,
+                mediaError: snap ? snap.error : null,
+                playResult: details && details.playResult != null ? details.playResult : null,
+                playErrorName: details && details.playErrorName != null ? details.playErrorName : null,
+                playErrorMessage: details && details.playErrorMessage != null ? details.playErrorMessage : null,
+                ctrlId: (details && details.ctrlId) || ctrlSnap.ctrlId,
+                ctrlUrl: ctrlSnap.ctrlUrl,
+                ctrlPlaying: ctrlSnap.ctrlPlaying,
+                isSwapping: (details && details.isSwapping != null)
+                    ? details.isSwapping
+                    : ctrlSnap.transitioning,
+                pageToken: global.__maryArticlePageToken != null ? global.__maryArticlePageToken : null,
+                autoNextGen: global.__maryTraceAutoNextGen != null ? global.__maryTraceAutoNextGen : null,
+                note: details && details.note != null ? details.note : null,
+                extra: details && details.extra != null ? details.extra : null
+            };
+            timeline.push(entry);
+            if (timeline.length > MAX_ENTRIES) timeline.splice(0, timeline.length - MAX_ENTRIES);
+            global.__maryAudioTimeline = timeline;
+            persist();
+            try {
+                if (typeof console !== 'undefined' && console.debug) {
+                    console.debug('[MaryAudioTrace]', entry.event, entry);
+                }
+            } catch (_) { /* ignore */ }
+            return entry;
+        }
+
+        function mark(label) {
+            log('MARK', { note: String(label || ''), extra: { manual: true } });
+        }
+
+        function trackPlay(el, promise, note, meta) {
+            const base = Object.assign({ el: el, note: note || 'play' }, meta || {});
+            log('play-call', base);
+            if (!promise || typeof promise.then !== 'function') {
+                log('play-result', Object.assign({}, base, {
+                    playResult: 'no-promise',
+                    extra: { pausedAfter: el ? !!el.paused : null }
+                }));
+                return promise;
+            }
+            // Observa a mesma Promise sem alterar a cadeia do caller.
+            promise.then(
+                () => {
+                    log('play-resolved', Object.assign({}, base, {
+                        playResult: 'resolved',
+                        extra: { pausedAfter: el ? !!el.paused : null }
+                    }));
+                },
+                (err) => {
+                    log('play-rejected', Object.assign({}, base, {
+                        playResult: 'rejected',
+                        playErrorName: err && err.name ? String(err.name) : 'Error',
+                        playErrorMessage: err && err.message ? String(err.message) : String(err || '')
+                    }));
+                }
+            );
+            return promise;
+        }
+
+        function watchMedia(el, role) {
+            if (!el || watched.has(el)) return;
+            watched.add(el);
+            watchedList.push(el);
+            noteEl(el, role || 'media');
+            log('watch-attach', { el: el, note: role || 'media' });
+            MEDIA_EVENTS.forEach((evtName) => {
+                el.addEventListener(evtName, () => {
+                    const extra = {};
+                    if (evtName === 'error' && el.error) {
+                        extra.errorCode = el.error.code;
+                        extra.errorMessage = el.error.message || '';
+                    }
+                    log('media:' + evtName, { el: el, note: role || 'media', extra: extra });
+                });
+            });
+            // timeupdate amostrado (observacional)
+            let lastTu = 0;
+            el.addEventListener('timeupdate', () => {
+                const now = Date.now();
+                if (now - lastTu < 1000) return;
+                lastTu = now;
+                log('media:timeupdate', { el: el, note: role || 'media' });
+            });
+        }
+
+        // SILENT_STALL: só diagnóstico — não pausa/reinicia/recupera.
+        setInterval(() => {
+            try {
+                const fromDom = typeof document !== 'undefined'
+                    ? Array.from(document.querySelectorAll('audio'))
+                    : [];
+                const nodes = fromDom.slice();
+                for (let i = 0; i < watchedList.length; i++) {
+                    const el = watchedList[i];
+                    if (el && nodes.indexOf(el) < 0) nodes.push(el);
+                }
+                nodes.forEach((el) => {
+                    if (!el || el.paused || el.ended) {
+                        stallState.delete(el);
+                        return;
+                    }
+                    const t = Number(el.currentTime);
+                    if (!Number.isFinite(t)) return;
+                    const prev = stallState.get(el);
+                    if (!prev) {
+                        stallState.set(el, { t: t, hits: 0 });
+                        return;
+                    }
+                    if (Math.abs(t - prev.t) < 0.05) {
+                        prev.hits += 1;
+                        if (prev.hits === 2) {
+                            log('SILENT_STALL', {
+                                el: el,
+                                note: 'currentTime not advancing while paused=false',
+                                extra: { stalledAt: t, samples: prev.hits }
+                            });
+                        }
+                    } else {
+                        prev.t = t;
+                        prev.hits = 0;
+                    }
+                });
+            } catch (_) { /* ignore */ }
+        }, 1000);
+
+        ['visibilitychange', 'pagehide', 'pageshow', 'freeze', 'resume'].forEach((evtName) => {
+            try {
+                const target = evtName === 'visibilitychange' ? document : global;
+                target.addEventListener(evtName, (e) => {
+                    log('lifecycle:' + evtName, {
+                        note: evtName,
+                        extra: {
+                            persisted: e && typeof e.persisted === 'boolean' ? e.persisted : null,
+                            visibilityState: document.visibilityState
+                        }
+                    });
+                });
+            } catch (_) { /* ignore */ }
+        });
+
+        try {
+            const saved = sessionStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed)) {
+                    parsed.forEach((row) => timeline.push(row));
+                }
+            }
+        } catch (_) { /* ignore */ }
+
+        global.__maryAudioTimeline = timeline;
+        global.__maryMark = mark;
+        global.__maryDumpTimeline = () => JSON.stringify({
+            timestamp: new Date().toISOString(),
+            visibilityState: document.visibilityState,
+            entries: timeline.slice()
+        }, null, 2);
+
+        log('TRACE_INIT', { note: 'observational timeline ready', extra: { restored: timeline.length } });
+
+        return {
+            enabled: true,
+            log: log,
+            mark: mark,
+            watchMedia: watchMedia,
+            trackPlay: trackPlay,
+            noteEl: noteEl,
+            getCtrlId: getCtrlId,
+            snapshotEl: snapshotEl
+        };
+    })();
+
     function createHighlighter() {
         let blocks = [];
         let totalChars = 0;
@@ -166,6 +469,7 @@
         let currentUrl = String(url || '');
         let isSwappingAudio = false;
         let pendingSwapUrl = null;
+        const ctrlTraceId = MaryAudioTrace.enabled ? ('ctrl-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7)) : '';
 
         let currentOnChrome = onChrome;
         let currentOpts = opts;
@@ -245,15 +549,31 @@
         };
 
         const cleanup = () => {
+            MaryAudioTrace.log('cleanup', {
+                el: audio,
+                ctrlId: ctrlTraceId,
+                isSwapping: isSwappingAudio,
+                note: 'cleanup'
+            });
             isSwappingAudio = false;
             pendingSwapUrl = null;
             requestBufferingHide();
             if (audio) {
                 try {
+                    MaryAudioTrace.log('pause-call', { el: audio, ctrlId: ctrlTraceId, note: 'cleanup' });
                     audio.pause();
+                    MaryAudioTrace.log('removeAttribute-src', { el: audio, ctrlId: ctrlTraceId, note: 'cleanup' });
                     audio.removeAttribute('src');
+                    MaryAudioTrace.log('load-call', { el: audio, ctrlId: ctrlTraceId, note: 'cleanup' });
                     audio.load();
-                    if (audio.parentNode) audio.parentNode.removeChild(audio);
+                    if (audio.parentNode) {
+                        MaryAudioTrace.log('destroy-audio', {
+                            el: audio,
+                            ctrlId: ctrlTraceId,
+                            note: 'cleanup:removeChild'
+                        });
+                        audio.parentNode.removeChild(audio);
+                    }
                 } catch (_) {
                     /* ignore */
                 }
@@ -269,6 +589,14 @@
             audio.style.display = 'none';
             if (document.body) document.body.appendChild(audio);
             audio.preload = 'metadata';
+            MaryAudioTrace.noteEl(audio, 'article');
+            MaryAudioTrace.watchMedia(audio, 'article');
+            MaryAudioTrace.log('create-audio', {
+                el: audio,
+                ctrlId: ctrlTraceId,
+                note: 'ensure:create',
+                src: String(currentUrl || '')
+            });
             audio.addEventListener('ended', () => {
                 requestBufferingHide();
                 setChrome(false, true);
@@ -338,6 +666,7 @@
 
         return {
             mode: 'file',
+            __maryTraceCtrlId: ctrlTraceId,
             updateCallbacks(newOnChrome, newOpts) {
                 currentOnChrome = newOnChrome;
                 currentOpts = newOpts || {};
@@ -364,8 +693,24 @@
                 const target = String(newUrl || '');
                 if (!target) return;
 
+                MaryAudioTrace.log('swapAndPlay', {
+                    el: audio,
+                    ctrlId: ctrlTraceId,
+                    isSwapping: isSwappingAudio,
+                    note: 'swapAndPlay',
+                    src: target,
+                    extra: { from: String(currentUrl || ''), to: target }
+                });
+
                 if (isSwappingAudio) {
                     pendingSwapUrl = target;
+                    MaryAudioTrace.log('swapAndPlay-coalesce', {
+                        el: audio,
+                        ctrlId: ctrlTraceId,
+                        isSwapping: true,
+                        note: 'pendingSwapUrl',
+                        src: target
+                    });
                     return;
                 }
 
@@ -374,10 +719,36 @@
                     isSwappingAudio = true;
                     pendingSwapUrl = null;
                     currentUrl = targetUrl;
+                    MaryAudioTrace.log('swapAndPlay-process', {
+                        el: audio,
+                        ctrlId: ctrlTraceId,
+                        isSwapping: true,
+                        note: 'processSwap',
+                        src: targetUrl
+                    });
 
                     try {
+                        MaryAudioTrace.log('pause-call', {
+                            el: audio,
+                            ctrlId: ctrlTraceId,
+                            isSwapping: true,
+                            note: 'swapAndPlay'
+                        });
                         audio.pause();
+                        MaryAudioTrace.log('src-set', {
+                            el: audio,
+                            ctrlId: ctrlTraceId,
+                            isSwapping: true,
+                            note: 'swapAndPlay',
+                            src: targetUrl
+                        });
                         audio.src = targetUrl;
+                        MaryAudioTrace.log('load-call', {
+                            el: audio,
+                            ctrlId: ctrlTraceId,
+                            isSwapping: true,
+                            note: 'swapAndPlay'
+                        });
                         audio.load();
                     } catch (_) {
                         /* ignore */
@@ -402,6 +773,12 @@
                         pendingSwapUrl = null;
                         isSwappingAudio = false;
                         syncPlaybackState();
+                        MaryAudioTrace.log('swapAndPlay-unlock', {
+                            el: audio,
+                            ctrlId: ctrlTraceId,
+                            isSwapping: false,
+                            note: 'finishSwapLock'
+                        });
                     };
 
                     const armResumeOnVisible = () => {
@@ -410,11 +787,19 @@
                             document.removeEventListener('visibilitychange', resumeOnVisible);
                             if (!audio || !audio.paused) return;
                             const p = audio.play();
+                            MaryAudioTrace.trackPlay(audio, p, 'swapAndPlay:resumeOnVisible', {
+                                ctrlId: ctrlTraceId
+                            });
                             if (p && typeof p.then === 'function') {
                                 p.then(() => { stopAdAudio(); }).catch(() => { /* ignore */ });
                             }
                         };
                         document.addEventListener('visibilitychange', resumeOnVisible);
+                        MaryAudioTrace.log('arm-resumeOnVisible', {
+                            el: audio,
+                            ctrlId: ctrlTraceId,
+                            note: 'swapAndPlay:NotAllowedError'
+                        });
                     };
 
                     const attemptPlay = (isRetry) => {
@@ -423,6 +808,10 @@
                             return;
                         }
                         const playPromise = audio.play();
+                        MaryAudioTrace.trackPlay(audio, playPromise, isRetry ? 'swapAndPlay:retry' : 'swapAndPlay', {
+                            ctrlId: ctrlTraceId,
+                            isSwapping: true
+                        });
                         if (playPromise === undefined || typeof playPromise.then !== 'function') {
                             if (audio && !audio.paused) stopAdAudio();
                             finishSwapLock();
@@ -489,6 +878,11 @@
                 const el = ensure();
                 if (!el) return false;
                 if (!el.paused) {
+                    MaryAudioTrace.log('pause-call', {
+                        el: el,
+                        ctrlId: ctrlTraceId,
+                        note: 'toggle:pause'
+                    });
                     el.pause();
                     return true;
                 }
@@ -500,7 +894,9 @@
                     if (el.readyState < 3) {
                         requestBufferingShow();
                     }
-                    await el.play();
+                    const playPromise = el.play();
+                    MaryAudioTrace.trackPlay(el, playPromise, 'toggle', { ctrlId: ctrlTraceId });
+                    await playPromise;
                     return true;
                 } catch (err) {
                     if (err && err.name === 'AbortError') {
@@ -602,8 +998,15 @@
 
     // Auto-next "próximo episódio": sessão isolada (não é generation global do áudio).
     let autoNextGen = 0;
+    global.__maryTraceAutoNextGen = autoNextGen;
     let autoNextTimer = null;
     let autoNextSession = null;
+
+    function bumpAutoNextGen() {
+        autoNextGen += 1;
+        global.__maryTraceAutoNextGen = autoNextGen;
+        return autoNextGen;
+    }
 
     const AD_BREAK_SEC = 8;
     const AD_BREAK_MS = AD_BREAK_SEC * 1000;
@@ -613,7 +1016,12 @@
 
     function stopAdAudio() {
         if (!adAudio) return;
+        MaryAudioTrace.log('stopAdAudio', {
+            el: adAudio,
+            note: 'stopAdAudio'
+        });
         try {
+            MaryAudioTrace.log('pause-call', { el: adAudio, note: 'stopAdAudio' });
             adAudio.pause();
             adAudio.currentTime = 0;
         } catch (_) {
@@ -625,11 +1033,20 @@
         if (!adAudio) {
             adAudio = new Audio(resolveAbsoluteUrl(AD_BREAK_SRC));
             adAudio.preload = 'auto';
+            MaryAudioTrace.noteEl(adAudio, 'ad');
+            MaryAudioTrace.watchMedia(adAudio, 'ad');
+            MaryAudioTrace.log('create-audio', {
+                el: adAudio,
+                note: 'playAdAudio:create',
+                src: 'assets/audio/qt-ad-break.wav'
+            });
         }
         try {
+            MaryAudioTrace.log('pause-call', { el: adAudio, note: 'playAdAudio:reset' });
             adAudio.pause();
             adAudio.currentTime = 0;
             const playPromise = adAudio.play();
+            MaryAudioTrace.trackPlay(adAudio, playPromise, 'playAdAudio');
             if (playPromise && typeof playPromise.catch === 'function') {
                 playPromise.catch(() => {
                     /* ignore autoplay / abort */
@@ -855,7 +1272,11 @@
      * @param {{ keepAdAudio?: boolean }} [opts] — keepAdAudio: preserva ad durante handoff swapAndPlay
      */
     function clearAutoNext(opts) {
-        autoNextGen += 1;
+        bumpAutoNextGen();
+        MaryAudioTrace.log('clearAutoNext', {
+            note: 'clearAutoNext',
+            extra: { keepAdAudio: !!(opts && opts.keepAdAudio) }
+        });
         if (autoNextTimer) {
             clearInterval(autoNextTimer);
             autoNextTimer = null;
@@ -925,7 +1346,15 @@
             autoNextTimer = null;
         }
         autoNextSession = null;
-        autoNextGen += 1;
+        bumpAutoNextGen();
+        MaryAudioTrace.log('finishAdBreak', {
+            note: 'finishAdBreak',
+            extra: {
+                myGen: myGen,
+                nextSlug: art && art.slug ? art.slug : null,
+                keepAdPlaying: !!(adAudio && !adAudio.paused)
+            }
+        });
         restoreAutoNextUi();
         if (typeof advanceFn === 'function' && art) {
             advanceFn(art);
@@ -947,8 +1376,7 @@
             clearInterval(autoNextTimer);
             autoNextTimer = null;
         }
-        autoNextGen += 1;
-        const myGen = autoNextGen;
+        const myGen = bumpAutoNextGen();
         const slug = String(sourceSlug || '');
         let resolvedMode = 'early';
         if (mode === 'ad') resolvedMode = 'ad';
@@ -967,6 +1395,16 @@
             remaining: remainingSec,
             startedAt: resolvedMode === 'ad' ? performance.now() : undefined
         };
+
+        MaryAudioTrace.log('startAutoNext', {
+            note: 'startAutoNext',
+            extra: {
+                mode: resolvedMode,
+                myGen: myGen,
+                sourceSlug: slug,
+                nextSlug: nextArt && nextArt.slug ? nextArt.slug : null
+            }
+        });
 
         if (resolvedMode === 'ad') {
             backupAdBreakChrome();
@@ -1047,7 +1485,7 @@
             clearInterval(autoNextTimer);
             autoNextTimer = null;
             autoNextSession = null;
-            autoNextGen += 1;
+            bumpAutoNextGen();
             restoreAutoNextUi();
             advanceFn(art);
         }, 1000);
@@ -2041,6 +2479,15 @@
         setMaryPlaybackUnavailable(false);
 
         if (activeCtrl && !adopt) {
+            MaryAudioTrace.log('rebind-stop', {
+                ctrlId: MaryAudioTrace.getCtrlId(activeCtrl),
+                note: 'bind:!adopt → stop()',
+                extra: {
+                    sameUrl: sameUrl,
+                    adoptTransitioning: adoptTransitioning,
+                    audioUrl: String(audioUrl || '')
+                }
+            });
             if (typeof activeCtrl.stop === 'function') {
                 activeCtrl.stop();
             }
