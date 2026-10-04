@@ -1058,6 +1058,8 @@
      */
     function applyPlayingArticleChrome(art) {
         if (!art || !art.slug) return;
+        // Não sobrescrever "Anúncio" no meio do ad break.
+        if (isAdBreakActive()) return;
         __maryNav.currentSlug = art.slug;
         __maryNav.currentArt = art;
         setMediaSessionMetadata(art);
@@ -1166,25 +1168,20 @@
     }
 
     /**
-     * Mantém o ad audível durante o handoff swap→próxima faixa.
-     * Evidência: se o wav do ad acaba com a próxima ainda em readyState=0 (BG),
-     * o play() fica pendente (SILENT_STALL) até o app voltar ao foreground.
+     * Mantém o ad audível durante o handoff swap→próxima faixa (só BG).
+     * Não cria/inicia ad do zero — advance manual sem ad break gerava ~1s de anúncio.
      */
     function ensureAdHandoffWarm() {
-        if (!adAudio) {
-            adAudio = new Audio(resolveAbsoluteUrl(AD_BREAK_SRC));
-            adAudio.preload = 'auto';
-            MaryAudioTrace.noteEl(adAudio, 'ad');
-            MaryAudioTrace.watchMedia(adAudio, 'ad');
-            MaryAudioTrace.log('create-audio', {
-                el: adAudio,
-                note: 'ensureAdHandoffWarm:create',
-                src: 'assets/audio/qt-ad-break.wav'
-            });
+        if (!adAudio) return;
+        if (document.visibilityState === 'visible') {
+            // Em foreground o swap não precisa do ad como aquecedor.
+            return;
         }
         try {
-            adAudio.loop = true;
-            if (adAudio.paused || adAudio.ended) {
+            if (!adAudio.paused && !adAudio.ended) {
+                adAudio.loop = true;
+            } else {
+                adAudio.loop = true;
                 try { adAudio.currentTime = 0; } catch (_) { /* ignore */ }
                 const playPromise = adAudio.play();
                 MaryAudioTrace.trackPlay(adAudio, playPromise, 'ensureAdHandoffWarm');
@@ -1205,6 +1202,53 @@
         } catch (_) {
             /* ignore */
         }
+    }
+
+    function setMediaSessionAdBreak(remainingSec) {
+        if (!('mediaSession' in navigator)) return;
+        const timeStr = formatAdCountdown(remainingSec);
+        const artSrc = resolveAbsoluteUrl('assets/img/brand/qt-android-chrome-512x512.png');
+        try {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: 'Anúncio',
+                artist: timeStr + ' · Qualquer Tecla',
+                album: 'Qualquer Tecla',
+                artwork: [{ src: artSrc, sizes: '512x512', type: 'image/png' }]
+            });
+            navigator.mediaSession.playbackState = 'playing';
+        } catch (e) {
+            console.warn('Erro ao definir metadados do anúncio no MediaSession:', e);
+        }
+    }
+
+    /**
+     * Avanço com ad break completo (manual / MediaSession next).
+     * __maryNav.advance permanece o swap imediato (pós-ad).
+     */
+    function requestAdvanceWithAd(targetArt) {
+        if (!targetArt) return;
+        if (isAdBreakActive()) {
+            // Já em anúncio: segundo next = pular o ad e avançar.
+            clearAutoNext();
+            if (typeof __maryNav.advance === 'function') {
+                __maryNav.advance(targetArt);
+            }
+            return;
+        }
+        if (isAutoNextActive()) {
+            clearAutoNext();
+        }
+        startAutoNext(
+            targetArt,
+            getPlayingSlug(''),
+            'ad',
+            (art) => {
+                if (typeof __maryNav.advance === 'function') {
+                    __maryNav.advance(art);
+                }
+            },
+            () => false
+        );
     }
 
     function playAdAudio() {
@@ -1274,10 +1318,15 @@
         const mp = window.Mary && window.Mary.active && window.Mary.active.player;
         if (mp) {
             if (mp.title) mp.title.textContent = label;
-            if (mp.author) mp.author.textContent = timeStr;
+            if (mp.author) mp.author.textContent = timeStr + ' · Qualquer Tecla';
             if (mp.timeCurrent) mp.timeCurrent.textContent = timeStr;
             if (mp.timeRemaining) mp.timeRemaining.textContent = label;
+            // Capa do anúncio: marca (não a do artigo).
+            const adCover = resolveAbsoluteUrl('assets/img/brand/qt-android-chrome-512x512.png');
+            if (mp.cover) mp.cover.src = adCover;
+            if (mp.ambientBg) mp.ambientBg.style.backgroundImage = `url(${adCover})`;
         }
+        setMediaSessionAdBreak(remainingSec);
         getPlayButtons().forEach((btn) => {
             let count = btn.querySelector('.mary-auto-next-count');
             if (!count) {
@@ -1592,6 +1641,7 @@
         if (resolvedMode === 'ad') {
             backupAdBreakChrome();
             renderAutoNextUi(AD_BREAK_SEC, { adBreak: true, remainingSec: AD_BREAK_SEC });
+            updateAdBreakCountdown(AD_BREAK_SEC);
             playAdAudio();
         } else {
             renderAutoNextUi();
@@ -1601,7 +1651,36 @@
         if (typeof advanceFn !== 'function') return;
 
         if (resolvedMode === 'ad') {
-            // Fonte única: elapsed via performance.now(); corta áudio e avança em exatamente 8.0s.
+            // Avança quando o wav do ad termina (áudio separado completo).
+            // Fallback de segurança se 'ended' não disparar.
+            let adFinishArmed = false;
+            const tryFinishAd = () => {
+                if (adFinishArmed) return;
+                if (autoNextGen !== myGen) return;
+                if (!autoNextSession || autoNextSession.gen !== myGen || autoNextSession.mode !== 'ad') return;
+                adFinishArmed = true;
+                if (adAudio) {
+                    try { adAudio.removeEventListener('ended', onAdEndedNatural); } catch (_) { /* ignore */ }
+                }
+                const currentSlug = getPlayingSlug('');
+                if (slug && currentSlug && currentSlug !== slug) {
+                    clearAutoNext();
+                    return;
+                }
+                finishAdBreak(myGen, advanceFn);
+            };
+            const onAdEndedNatural = () => {
+                MaryAudioTrace.log('ad-ended-natural', {
+                    el: adAudio,
+                    note: 'ad-break-complete'
+                });
+                tryFinishAd();
+            };
+            if (adAudio) {
+                adAudio.loop = false;
+                adAudio.addEventListener('ended', onAdEndedNatural);
+            }
+
             autoNextTimer = setInterval(() => {
                 if (autoNextGen !== myGen) return;
                 if (!autoNextSession || autoNextSession.gen !== myGen || autoNextSession.mode !== 'ad') return;
@@ -1612,25 +1691,21 @@
 
                 const startedAt = autoNextSession.startedAt || performance.now();
                 const elapsed = performance.now() - startedAt;
+                const adDurMs = (adAudio && Number.isFinite(adAudio.duration) && adAudio.duration > 0)
+                    ? (adAudio.duration * 1000)
+                    : AD_BREAK_MS;
+                const totalMs = Math.max(AD_BREAK_MS, adDurMs);
 
-                // Não pausar adAudio aqui: ele precisa continuar durante swapAndPlay
-                // para não esfriar a sessão de mídia em background.
-
-                if (elapsed >= AD_BREAK_MS) {
-                    const currentSlug = getPlayingSlug('');
-                    if (slug && currentSlug && currentSlug !== slug) {
-                        clearAutoNext();
-                        return;
-                    }
-                    finishAdBreak(myGen, advanceFn);
-                    return;
-                }
-
-                const remainingMs = AD_BREAK_MS - elapsed;
-                const remainingDisplay = Math.max(1, Math.ceil(remainingMs / 1000));
+                const remainingMs = Math.max(0, totalMs - elapsed);
+                const remainingDisplay = Math.max(0, Math.ceil(remainingMs / 1000));
                 if (autoNextSession.remaining !== remainingDisplay) {
                     autoNextSession.remaining = remainingDisplay;
-                    updateAdBreakCountdown(remainingDisplay);
+                    updateAdBreakCountdown(remainingDisplay || 0);
+                }
+
+                // Fallback: wav deveria ter disparado 'ended'; margem de 1.5s.
+                if (elapsed >= totalMs + 1500) {
+                    tryFinishAd();
                 }
             }, 100);
             return;
@@ -1795,8 +1870,8 @@
                 if (ctrl) ctrl.toggle();
             });
             navigator.mediaSession.setActionHandler('nexttrack', () => {
-                if (__maryNav.nextArt && typeof __maryNav.advance === 'function') {
-                    __maryNav.advance(__maryNav.nextArt);
+                if (__maryNav.nextArt) {
+                    requestAdvanceWithAd(__maryNav.nextArt);
                 }
             });
             navigator.mediaSession.setActionHandler('previoustrack', () => {
@@ -2370,8 +2445,7 @@
             if (mp.nextBtn) {
                 mp.nextBtn.onclick = () => {
                     autoNextDismissed = true;
-                    clearAutoNext();
-                    if (__maryNav.nextArt) advanceToArticle(__maryNav.nextArt);
+                    if (__maryNav.nextArt) requestAdvanceWithAd(__maryNav.nextArt);
                 };
             }
 
