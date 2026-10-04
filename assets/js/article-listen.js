@@ -843,6 +843,10 @@
                             // play() resolveu: sessão da próxima faixa ativa; libera o ad.
                             clearSwapWatchdog();
                             stopAdAudio();
+                            // Android costuma pintar MediaSession só com playback ativo.
+                            if (__maryNav.currentArt) {
+                                setMediaSessionMetadata(__maryNav.currentArt);
+                            }
                             finishSwapLock();
                         }).catch((err) => {
                             if (err && err.name === 'AbortError') {
@@ -1031,6 +1035,7 @@
     // ── Estado de navegação do MediaSession (fonte única) ───────────────
     const __maryNav = {
         currentSlug: null,
+        currentArt: null,
         nextArt: null,
         prevArt: null,
         advance: null
@@ -1045,6 +1050,77 @@
             if (fromDom) return String(fromDom);
         } catch (_) { /* ignore */ }
         return fallbackSlug ? String(fallbackSlug) : '';
+    }
+
+    /**
+     * Atualiza player in-page + MediaSession para a faixa tocando.
+     * Usado no advance seamless (rebind DOM pode não rodar em BG).
+     */
+    function applyPlayingArticleChrome(art) {
+        if (!art || !art.slug) return;
+        __maryNav.currentSlug = art.slug;
+        __maryNav.currentArt = art;
+        setMediaSessionMetadata(art);
+
+        const mp = window.Mary && window.Mary.active && window.Mary.active.player;
+        if (!mp || !mp.el) return;
+
+        mp.el.classList.remove('has-started');
+        mp.el.dataset.maryCurrentArticle = art.slug;
+        delete mp.el.dataset.userInteracted;
+
+        if (mp.title) mp.title.textContent = art.title || 'Qualquer Tecla';
+        if (mp.author) {
+            mp.author.textContent = (art.authors && art.authors.name) || 'Equipe Qualquer Tecla';
+        }
+
+        const rawThumb = art.featured_image || art.thumbnail || 'assets/img/placeholder-article.svg';
+        const src = window.MockData && typeof window.MockData.assetPath === 'function'
+            ? window.MockData.assetPath(rawThumb)
+            : rawThumb;
+        if (mp.cover) mp.cover.src = src;
+        if (mp.ambientBg) mp.ambientBg.style.backgroundImage = `url(${src})`;
+
+        if (mp.nextBtn) mp.nextBtn.disabled = !__maryNav.nextArt;
+        if (mp.prevBtn) mp.prevBtn.disabled = !__maryNav.prevArt;
+
+        requestAnimationFrame(() => {
+            observeMarqueeTitles(mp);
+        });
+
+        if (window.FavoritesStore && mp.favBtn && mp.favIcon && mp.favCount) {
+            mp.favIcon.classList.remove('ph-fill');
+            mp.favIcon.classList.add('ph');
+            mp.favIcon.style.color = '';
+            mp.favCount.textContent = '—';
+            mp.favBtn.setAttribute('aria-pressed', 'false');
+            window.FavoritesStore.getState(art.slug).then((state) => {
+                if (getPlayingSlug('') !== art.slug) return;
+                if (state.isFavorited) {
+                    mp.favIcon.classList.remove('ph');
+                    mp.favIcon.classList.add('ph-fill');
+                    mp.favIcon.style.color = 'var(--qualquer-tecla-gold)';
+                    mp.favBtn.setAttribute('aria-pressed', 'true');
+                } else {
+                    mp.favIcon.classList.remove('ph-fill');
+                    mp.favIcon.classList.add('ph');
+                    mp.favIcon.style.color = '';
+                    mp.favBtn.setAttribute('aria-pressed', 'false');
+                }
+                mp.favCount.textContent = state.total;
+            }).catch(() => {
+                if (getPlayingSlug('') !== art.slug) return;
+                mp.favCount.textContent = '-';
+            });
+        }
+
+        MaryAudioTrace.log('applyPlayingArticleChrome', {
+            note: 'chrome+mediasession',
+            extra: {
+                slug: art.slug,
+                title: art.title || null
+            }
+        });
     }
 
     let articleListPromise = null;
@@ -1756,8 +1832,9 @@
         let dead = false;
         let autoNextDismissed = false;
         let hadFiniteDuration = false;
-        // Faixa deste bind; advance seamless atualiza __maryNav.currentSlug mesmo sem rebind.
+        // Faixa deste bind; advance seamless atualiza currentSlug/currentArt mesmo sem rebind.
         __maryNav.currentSlug = article.slug;
+        __maryNav.currentArt = article;
         const highlighter = createHighlighter();
 
         const setPlayBtnLoading = (on) => {
@@ -1881,62 +1958,12 @@
             const mp = window.Mary.active.player;
             if (!mp || !mp.el) return;
 
-            if (mp.el.dataset.maryCurrentArticle !== article.slug) {
-                mp.el.classList.remove('has-started');
-                mp.el.dataset.maryCurrentArticle = article.slug;
+            // Bind obsoleto após advance seamless: não reverter capa/título/MediaSession.
+            const playingSlug = getPlayingSlug(article.slug);
+            const bindOwnsChrome = !playingSlug || playingSlug === article.slug;
 
-                mp.title.textContent = article.title || 'Qualquer Tecla';
-                delete mp.el.dataset.userInteracted;
-
-                requestAnimationFrame(() => {
-                    if (dead) return;
-                    observeMarqueeTitles(mp);
-                });
-
-                if (mp.author) {
-                    mp.author.textContent = (article.authors && article.authors.name) || 'Equipe Qualquer Tecla';
-                }
-                const rawThumb = article.featured_image || article.thumbnail || 'assets/img/placeholder-article.svg';
-                const src = window.MockData && typeof window.MockData.assetPath === 'function'
-                    ? window.MockData.assetPath(rawThumb)
-                    : rawThumb;
-                if (mp.cover) mp.cover.src = src;
-                if (mp.ambientBg) mp.ambientBg.style.backgroundImage = `url(${src})`;
-
-                if (mp.nextBtn) mp.nextBtn.disabled = !__maryNav.nextArt;
-                if (mp.prevBtn) mp.prevBtn.disabled = !__maryNav.prevArt;
-
-                if (window.FavoritesStore && mp.favBtn && mp.favIcon && mp.favCount) {
-                    mp.favIcon.classList.remove('ph-fill');
-                    mp.favIcon.classList.add('ph');
-                    mp.favIcon.style.color = '';
-                    mp.favCount.textContent = '—';
-                    mp.favBtn.setAttribute('aria-pressed', 'false');
-
-                    window.FavoritesStore.getState(article.slug).then((state) => {
-                        if (dead) return;
-                        if (mp.el.dataset.maryCurrentArticle !== article.slug) return;
-                        if (state.isFavorited) {
-                            mp.favIcon.classList.remove('ph');
-                            mp.favIcon.classList.add('ph-fill');
-                            mp.favIcon.style.color = 'var(--qualquer-tecla-gold)';
-                            mp.favBtn.setAttribute('aria-pressed', 'true');
-                        } else {
-                            mp.favIcon.classList.remove('ph-fill');
-                            mp.favIcon.classList.add('ph');
-                            mp.favIcon.style.color = '';
-                            mp.favBtn.setAttribute('aria-pressed', 'false');
-                        }
-                        mp.favCount.textContent = state.total;
-                    }).catch((err) => {
-                        if (dead) return;
-                        if (mp.el.dataset.maryCurrentArticle !== article.slug) return;
-                        console.error('[Favorites] Erro ao carregar estado inicial', err);
-                        mp.favCount.textContent = '-';
-                    });
-                }
-
-                setMediaSessionMetadata(article);
+            if (bindOwnsChrome && mp.el.dataset.maryCurrentArticle !== article.slug) {
+                applyPlayingArticleChrome(article);
             }
 
             const isActuallyPaused = paused || !speaking;
@@ -2414,14 +2441,8 @@
             if (canSeamlessSwap) {
                 const audioSrc = targetArt.audio_full_url;
 
-                setMediaSessionMetadata(targetArt);
-
-                // Em BG o rebind DOM pode não rodar: a faixa efetiva muda aqui.
-                __maryNav.currentSlug = targetArt.slug;
-                try {
-                    const mp = window.Mary && window.Mary.active && window.Mary.active.player;
-                    if (mp && mp.el) mp.el.dataset.maryCurrentArticle = targetArt.slug;
-                } catch (_) { /* ignore */ }
+                // Em BG o rebind DOM pode não rodar: chrome + MediaSession mudam aqui.
+                applyPlayingArticleChrome(targetArt);
                 // Mesmo bind continua vivo sem rebind — liberar early/onEnded da nova faixa.
                 autoNextDismissed = false;
                 hadFiniteDuration = false;
@@ -2435,6 +2456,10 @@
                     applyNavNeighbors(targetArt.slug).then(() => {
                         if (dead) return;
                         syncNavButtons();
+                        // Reaplica metadados após vizinhos (alguns Androids só pintam com sessão playing).
+                        if (getPlayingSlug('') === targetArt.slug) {
+                            setMediaSessionMetadata(targetArt);
+                        }
                     });
                 }
 
