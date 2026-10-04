@@ -1872,10 +1872,9 @@
             if (mp.prevBtn) mp.prevBtn.disabled = !__maryNav.prevArt;
         };
 
-        // Bind obsoleto (adota controller em transição para outra URL) não escreve __maryNav.
-        const navReady = adoptTransitioning
-            ? loadArticleList()
-            : applyNavNeighbors(article.slug);
+        // Sempre recalcular vizinhos para o slug da faixa/página atual.
+        // (Não pular em adoptTransitioning — nextArt obsoleto quebrava o 2º ended.)
+        const navReady = applyNavNeighbors(article.slug);
         navReady.then(() => {
             if (dead) return;
             syncNavButtons();
@@ -2368,6 +2367,13 @@
 
         __maryNav.advance = advanceToArticle;
 
+        // Usa o advance do bind vivo (pós-rebind), não o closure do bind morto.
+        const liveAdvance = (art) => {
+            if (typeof __maryNav.advance === 'function') {
+                __maryNav.advance(art);
+            }
+        };
+
         const onEnded = () => {
             if (dead) return;
             if (handlingEnded) return;
@@ -2391,53 +2397,88 @@
                 }
             };
 
-            if (!__maryNav.nextArt) {
-                finishWithoutAdvance();
-                return;
-            }
+            const logEndedBranch = (branch, nextArt) => {
+                MaryAudioTrace.log('onEnded-branch', {
+                    note: branch,
+                    ctrlId: controller && controller.__maryTraceCtrlId
+                        ? controller.__maryTraceCtrlId
+                        : null,
+                    extra: {
+                        branch: branch,
+                        articleSlug: article.slug,
+                        nextSlug: nextArt && nextArt.slug ? nextArt.slug : null,
+                        autoNextDismissed: autoNextDismissed,
+                        hadFiniteDuration: hadFiniteDuration
+                    }
+                });
+            };
 
-            if (autoNextDismissed) {
-                clearAutoNext();
-                finishWithoutAdvance();
-                return;
-            }
-
-            const nextArt = __maryNav.nextArt;
-            const session = autoNextSession;
-
-            // Caminho principal: sessão early ativa → ad break → navega.
-            if (session && session.mode === 'early' && session.gen === autoNextGen) {
-                const slug = session.sourceSlug;
-                const mp = window.Mary && window.Mary.active && window.Mary.active.player;
-                const currentSlug = mp && mp.el ? mp.el.dataset.maryCurrentArticle : '';
-                if (slug && currentSlug && currentSlug !== slug) {
-                    clearAutoNext();
+            const chainAd = (nextArt, branch) => {
+                if (dead) return;
+                if (!nextArt) {
+                    logEndedBranch('no-next', null);
                     finishWithoutAdvance();
                     return;
                 }
-                const art = session.nextArt || nextArt;
+                logEndedBranch(branch, nextArt);
                 clearAutoNext();
-                startAutoNext(art, article.slug, 'ad', (a) => { advanceToArticle(a); }, () => dead);
-                return;
-            }
+                startAutoNext(nextArt, article.slug, 'ad', liveAdvance, () => dead);
+            };
 
-            // Fallback: duration nunca foi finita → ad break pós-ended.
-            if (!hadFiniteDuration) {
-                if (isAutoNextActive()) return;
-                clearAutoNext();
-                startAutoNext(
-                    nextArt,
-                    article.slug,
-                    'ad',
-                    (art) => { advanceToArticle(art); },
-                    () => dead
-                );
-                return;
-            }
+            // Confirma próxima faixa na lista canônica antes de qualquer cleanup.
+            // !__maryNav.nextArt sozinho NÃO é fim da lista (pode estar stale pós-rebind).
+            const cachedNext = __maryNav.nextArt;
+            applyNavNeighbors(article.slug).then((neighbors) => {
+                if (dead) return;
+                const nextArt = (neighbors && neighbors.nextArt) || null;
 
-            // Duration finita mas early não armou (ex.: seek abrupto ao fim) → ad break.
-            clearAutoNext();
-            startAutoNext(nextArt, article.slug, 'ad', (art) => { advanceToArticle(art); }, () => dead);
+                if (!nextArt) {
+                    logEndedBranch('no-next', null);
+                    finishWithoutAdvance();
+                    return;
+                }
+
+                // Há próxima faixa real: nunca destruir o elemento — encadear ad→advance.
+                if (autoNextDismissed) {
+                    chainAd(nextArt, 'dismissed');
+                    return;
+                }
+
+                const session = autoNextSession;
+
+                // Caminho principal: sessão early ativa → ad break → navega.
+                if (session && session.mode === 'early' && session.gen === autoNextGen) {
+                    const slug = session.sourceSlug;
+                    const mp = window.Mary && window.Mary.active && window.Mary.active.player;
+                    const currentSlug = mp && mp.el ? mp.el.dataset.maryCurrentArticle : '';
+                    if (slug && currentSlug && currentSlug !== slug) {
+                        chainAd(nextArt, 'early-mismatch');
+                        return;
+                    }
+                    const art = session.nextArt || nextArt;
+                    chainAd(art, 'ad');
+                    return;
+                }
+
+                // Fallback: duration nunca foi finita → ad break pós-ended.
+                if (!hadFiniteDuration) {
+                    if (isAutoNextActive()) return;
+                    chainAd(nextArt, 'ad');
+                    return;
+                }
+
+                // Duration finita mas early não armou (ex.: seek abrupto ao fim) → ad break.
+                chainAd(nextArt, 'ad');
+            }).catch(() => {
+                if (dead) return;
+                // Rede/lista falhou: só destrói se também não houver cache de próxima.
+                if (cachedNext) {
+                    chainAd(cachedNext, 'ad');
+                    return;
+                }
+                logEndedBranch('no-next', null);
+                finishWithoutAdvance();
+            });
         };
         const controllerOpts = { onProgress, onEnded, onBuffering };
 
@@ -2445,6 +2486,8 @@
         // Se o controller ainda está em transição (isTransitioning), adota sem destruir
         // mesmo quando o artigo renderizado ainda não é o destino final (janela ~10 ms).
         if (activeCtrl && adopt) {
+            // Nova faixa após advance seamless: não herdar dismiss da faixa anterior.
+            autoNextDismissed = false;
             controller = activeCtrl;
             if (typeof controller.updateCallbacks === 'function') {
                 controller.updateCallbacks(onChrome, controllerOpts);
