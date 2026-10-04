@@ -983,10 +983,22 @@
 
     // ── Estado de navegação do MediaSession (fonte única) ───────────────
     const __maryNav = {
+        currentSlug: null,
         nextArt: null,
         prevArt: null,
         advance: null
     };
+
+    /** Slug da faixa efetivamente em reprodução (sobrevive a rebind DOM atrasado em BG). */
+    function getPlayingSlug(fallbackSlug) {
+        if (__maryNav.currentSlug) return String(__maryNav.currentSlug);
+        try {
+            const mp = window.Mary && window.Mary.active && window.Mary.active.player;
+            const fromDom = mp && mp.el ? mp.el.dataset.maryCurrentArticle : '';
+            if (fromDom) return String(fromDom);
+        } catch (_) { /* ignore */ }
+        return fallbackSlug ? String(fallbackSlug) : '';
+    }
 
     let articleListPromise = null;
     let activeBindCleanup = null;
@@ -1434,8 +1446,7 @@
                 // para não esfriar a sessão de mídia em background.
 
                 if (elapsed >= AD_BREAK_MS) {
-                    const mp = window.Mary && window.Mary.active && window.Mary.active.player;
-                    const currentSlug = mp && mp.el ? mp.el.dataset.maryCurrentArticle : '';
+                    const currentSlug = getPlayingSlug('');
                     if (slug && currentSlug && currentSlug !== slug) {
                         clearAutoNext();
                         return;
@@ -1474,8 +1485,7 @@
                 clearAutoNext();
                 return;
             }
-            const mp = window.Mary && window.Mary.active && window.Mary.active.player;
-            const currentSlug = mp && mp.el ? mp.el.dataset.maryCurrentArticle : '';
+            const currentSlug = getPlayingSlug('');
             if (slug && currentSlug && currentSlug !== slug) {
                 clearAutoNext();
                 return;
@@ -1651,6 +1661,8 @@
         let dead = false;
         let autoNextDismissed = false;
         let hadFiniteDuration = false;
+        // Faixa deste bind; advance seamless atualiza __maryNav.currentSlug mesmo sem rebind.
+        __maryNav.currentSlug = article.slug;
         const highlighter = createHighlighter();
 
         const setPlayBtnLoading = (on) => {
@@ -1762,7 +1774,7 @@
                 cur >= durRaw - 5
             ) {
                 hadFiniteDuration = true;
-                startAutoNext(__maryNav.nextArt, article.slug, 'early');
+                startAutoNext(__maryNav.nextArt, getPlayingSlug(article.slug), 'early');
             } else if (Number.isFinite(durRaw) && durRaw > 0) {
                 hadFiniteDuration = true;
             }
@@ -2288,6 +2300,7 @@
         };
 
         const advanceToArticle = (targetArt) => {
+            // Cancela early da faixa que está acabando; após o swap resetamos para a nova.
             autoNextDismissed = true;
             if (!targetArt || dead) {
                 clearAutoNext();
@@ -2307,6 +2320,16 @@
                 const audioSrc = targetArt.audio_full_url;
 
                 setMediaSessionMetadata(targetArt);
+
+                // Em BG o rebind DOM pode não rodar: a faixa efetiva muda aqui.
+                __maryNav.currentSlug = targetArt.slug;
+                try {
+                    const mp = window.Mary && window.Mary.active && window.Mary.active.player;
+                    if (mp && mp.el) mp.el.dataset.maryCurrentArticle = targetArt.slug;
+                } catch (_) { /* ignore */ }
+                // Mesmo bind continua vivo sem rebind — liberar early/onEnded da nova faixa.
+                autoNextDismissed = false;
+                hadFiniteDuration = false;
 
                 if (controller.swapAndPlay) {
                     controller.swapAndPlay(audioSrc);
@@ -2397,6 +2420,9 @@
                 }
             };
 
+            // Usar faixa TOCANDO, não article.slug do bind (em BG o rebind pode não ocorrer).
+            const playingSlug = getPlayingSlug(article.slug);
+
             const logEndedBranch = (branch, nextArt) => {
                 MaryAudioTrace.log('onEnded-branch', {
                     note: branch,
@@ -2406,6 +2432,7 @@
                     extra: {
                         branch: branch,
                         articleSlug: article.slug,
+                        playingSlug: playingSlug,
                         nextSlug: nextArt && nextArt.slug ? nextArt.slug : null,
                         autoNextDismissed: autoNextDismissed,
                         hadFiniteDuration: hadFiniteDuration
@@ -2422,13 +2449,13 @@
                 }
                 logEndedBranch(branch, nextArt);
                 clearAutoNext();
-                startAutoNext(nextArt, article.slug, 'ad', liveAdvance, () => dead);
+                startAutoNext(nextArt, playingSlug, 'ad', liveAdvance, () => dead);
             };
 
-            // Confirma próxima faixa na lista canônica antes de qualquer cleanup.
+            // Confirma próxima faixa na lista canônica da faixa TOCANDO antes de qualquer cleanup.
             // !__maryNav.nextArt sozinho NÃO é fim da lista (pode estar stale pós-rebind).
             const cachedNext = __maryNav.nextArt;
-            applyNavNeighbors(article.slug).then((neighbors) => {
+            applyNavNeighbors(playingSlug).then((neighbors) => {
                 if (dead) return;
                 const nextArt = (neighbors && neighbors.nextArt) || null;
 
@@ -2449,8 +2476,7 @@
                 // Caminho principal: sessão early ativa → ad break → navega.
                 if (session && session.mode === 'early' && session.gen === autoNextGen) {
                     const slug = session.sourceSlug;
-                    const mp = window.Mary && window.Mary.active && window.Mary.active.player;
-                    const currentSlug = mp && mp.el ? mp.el.dataset.maryCurrentArticle : '';
+                    const currentSlug = getPlayingSlug('');
                     if (slug && currentSlug && currentSlug !== slug) {
                         chainAd(nextArt, 'early-mismatch');
                         return;
