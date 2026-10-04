@@ -719,6 +719,10 @@
                     isSwappingAudio = true;
                     pendingSwapUrl = null;
                     currentUrl = targetUrl;
+                    let swapWatchdogTimer = null;
+                    let stuckVisArmed = false;
+                    // Mantém faixa audível enquanto a próxima bufferiza em BG.
+                    ensureAdHandoffWarm();
                     MaryAudioTrace.log('swapAndPlay-process', {
                         el: audio,
                         ctrlId: ctrlTraceId,
@@ -758,7 +762,21 @@
                         requestBufferingShow();
                     }
 
+                    const clearSwapWatchdog = () => {
+                        if (swapWatchdogTimer) {
+                            clearTimeout(swapWatchdogTimer);
+                            swapWatchdogTimer = null;
+                        }
+                    };
+
+                    const isSwapStuck = () => {
+                        if (!audio || currentUrl !== targetUrl) return false;
+                        const ct = Number(audio.currentTime) || 0;
+                        return audio.readyState < 3 && ct < 0.05;
+                    };
+
                     const finishSwapLock = () => {
+                        clearSwapWatchdog();
                         if (!audio) {
                             isSwappingAudio = false;
                             pendingSwapUrl = null;
@@ -781,11 +799,15 @@
                         });
                     };
 
-                    const armResumeOnVisible = () => {
+                    const armResumeOnVisible = (reason) => {
+                        if (stuckVisArmed) return;
+                        stuckVisArmed = true;
                         const resumeOnVisible = () => {
                             if (document.visibilityState !== 'visible') return;
                             document.removeEventListener('visibilitychange', resumeOnVisible);
-                            if (!audio || !audio.paused) return;
+                            if (!audio || currentUrl !== targetUrl) return;
+                            // Stuck BG: paused=false + readyState=0 — ainda precisa de nudge.
+                            if (!isSwapStuck() && !audio.paused) return;
                             const p = audio.play();
                             MaryAudioTrace.trackPlay(audio, p, 'swapAndPlay:resumeOnVisible', {
                                 ctrlId: ctrlTraceId
@@ -798,7 +820,7 @@
                         MaryAudioTrace.log('arm-resumeOnVisible', {
                             el: audio,
                             ctrlId: ctrlTraceId,
-                            note: 'swapAndPlay:NotAllowedError'
+                            note: reason || 'swapAndPlay:resume'
                         });
                     };
 
@@ -819,6 +841,7 @@
                         }
                         playPromise.then(() => {
                             // play() resolveu: sessão da próxima faixa ativa; libera o ad.
+                            clearSwapWatchdog();
                             stopAdAudio();
                             finishSwapLock();
                         }).catch((err) => {
@@ -851,13 +874,37 @@
                                 return;
                             }
                             if (err && err.name === 'NotAllowedError' && document.visibilityState !== 'visible') {
-                                armResumeOnVisible();
+                                ensureAdHandoffWarm();
+                                armResumeOnVisible('swapAndPlay:NotAllowedError');
                             } else {
                                 console.error('Audio swap play error:', err);
                             }
                             finishSwapLock();
                         });
                     };
+
+                    // Se o play() fica pendente com readyState=0 (não rejeita), reaquecer ad.
+                    swapWatchdogTimer = setTimeout(() => {
+                        swapWatchdogTimer = null;
+                        if (!audio || currentUrl !== targetUrl) return;
+                        if (!isSwapStuck()) return;
+                        MaryAudioTrace.log('swapAndPlay-watchdog', {
+                            el: audio,
+                            ctrlId: ctrlTraceId,
+                            isSwapping: true,
+                            note: 'silent-stall-handoff',
+                            extra: {
+                                readyState: audio.readyState,
+                                paused: audio.paused,
+                                currentTime: audio.currentTime,
+                                visibilityState: document.visibilityState
+                            }
+                        });
+                        ensureAdHandoffWarm();
+                        if (document.visibilityState !== 'visible') {
+                            armResumeOnVisible('swapAndPlay:silentStall');
+                        }
+                    }, 2500);
 
                     attemptPlay(false);
                 };
@@ -1033,9 +1080,52 @@
             note: 'stopAdAudio'
         });
         try {
+            adAudio.loop = false;
             MaryAudioTrace.log('pause-call', { el: adAudio, note: 'stopAdAudio' });
             adAudio.pause();
             adAudio.currentTime = 0;
+        } catch (_) {
+            /* ignore */
+        }
+    }
+
+    /**
+     * Mantém o ad audível durante o handoff swap→próxima faixa.
+     * Evidência: se o wav do ad acaba com a próxima ainda em readyState=0 (BG),
+     * o play() fica pendente (SILENT_STALL) até o app voltar ao foreground.
+     */
+    function ensureAdHandoffWarm() {
+        if (!adAudio) {
+            adAudio = new Audio(resolveAbsoluteUrl(AD_BREAK_SRC));
+            adAudio.preload = 'auto';
+            MaryAudioTrace.noteEl(adAudio, 'ad');
+            MaryAudioTrace.watchMedia(adAudio, 'ad');
+            MaryAudioTrace.log('create-audio', {
+                el: adAudio,
+                note: 'ensureAdHandoffWarm:create',
+                src: 'assets/audio/qt-ad-break.wav'
+            });
+        }
+        try {
+            adAudio.loop = true;
+            if (adAudio.paused || adAudio.ended) {
+                try { adAudio.currentTime = 0; } catch (_) { /* ignore */ }
+                const playPromise = adAudio.play();
+                MaryAudioTrace.trackPlay(adAudio, playPromise, 'ensureAdHandoffWarm');
+                if (playPromise && typeof playPromise.catch === 'function') {
+                    playPromise.catch(() => { /* ignore */ });
+                }
+            }
+            MaryAudioTrace.log('ensureAdHandoffWarm', {
+                el: adAudio,
+                note: 'ad-loop-until-article-playing',
+                extra: {
+                    paused: adAudio.paused,
+                    ended: adAudio.ended,
+                    loop: adAudio.loop,
+                    currentTime: adAudio.currentTime
+                }
+            });
         } catch (_) {
             /* ignore */
         }
@@ -1054,6 +1144,8 @@
             });
         }
         try {
+            // Sem loop na contagem do ad; o loop liga só no handoff (finishAdBreak/swap).
+            adAudio.loop = false;
             MaryAudioTrace.log('pause-call', { el: adAudio, note: 'playAdAudio:reset' });
             adAudio.pause();
             adAudio.currentTime = 0;
@@ -1359,12 +1451,15 @@
         }
         autoNextSession = null;
         bumpAutoNextGen();
+        // Ad wav ~8s acaba no mesmo instante do swap; sem loop a sessão BG esfria.
+        ensureAdHandoffWarm();
         MaryAudioTrace.log('finishAdBreak', {
             note: 'finishAdBreak',
             extra: {
                 myGen: myGen,
                 nextSlug: art && art.slug ? art.slug : null,
-                keepAdPlaying: !!(adAudio && !adAudio.paused)
+                keepAdPlaying: !!(adAudio && !adAudio.paused),
+                adLoop: !!(adAudio && adAudio.loop)
             }
         });
         restoreAutoNextUi();
