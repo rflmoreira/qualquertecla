@@ -7789,48 +7789,18 @@ a[data-bs-target] {
 .qt-pwa-install__copy-wrap {
     flex: 1 1 auto;
     min-width: 0;
-    overflow: hidden;
-}
-
-.qt-pwa-install__copy-wrap.has-marquee {
-    -webkit-mask-image: linear-gradient(to right, transparent, black 0.5rem, black calc(100% - 0.5rem), transparent);
-    mask-image: linear-gradient(to right, transparent, black 0.5rem, black calc(100% - 0.5rem), transparent);
 }
 
 .qt-pwa-install__copy {
     margin: 0;
     font-family: var(--font-ui);
-    font-size: var(--text-ui-xs);
-    font-weight: var(--font-weight-regular);
-    line-height: var(--leading-tight);
-    letter-spacing: 0;
-    color: var(--text-secondary);
+    font-size: var(--text-ui-2xs);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.2;
+    letter-spacing: 0.03em;
+    color: color-mix(in srgb, var(--text-primary) 82%, var(--text-secondary));
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.qt-pwa-install__copy.is-marquee {
-    text-overflow: clip !important;
-    overflow: visible !important;
-    display: inline-block !important;
-    max-width: none;
-    animation: mary-marquee 6s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .qt-pwa-install__copy.is-marquee {
-        animation: none !important;
-        transform: none !important;
-        text-overflow: ellipsis !important;
-        overflow: hidden !important;
-        display: block !important;
-    }
-
-    .qt-pwa-install__copy-wrap.has-marquee {
-        -webkit-mask-image: none;
-        mask-image: none;
-    }
+    overflow: visible;
 }
 
 .qt-pwa-install__actions {
@@ -7893,7 +7863,7 @@ a[data-bs-target] {
     }
 
     .qt-pwa-install__copy {
-        font-size: var(--text-ui-2xs);
+        letter-spacing: 0.025em;
     }
 
     .qt-pwa-install__install.btn-gold {
@@ -8208,6 +8178,24 @@ body.mary-is-expanded #mary-root {
     cursor: not-allowed;
 }
 
+/* −10 / ◀ / ▶ / +10 apagados e sem interação durante o anúncio */
+.mary-audio-player.is-ad-break .mary-player-expanded__btn--seek,
+.mary-audio-player.is-ad-break .mary-player-expanded__btn--skip,
+.mary-player-expanded__btn--seek:disabled,
+.mary-player-expanded__btn--skip:disabled {
+    opacity: 0.35;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+/* Barra do anúncio: só progresso visual — sem clique/arraste */
+.mary-audio-player.is-ad-break .mary-player-mini__progress,
+.mary-audio-player.is-ad-break #mary-player-progress-track-mini,
+.mary-audio-player.is-ad-break #mary-player-progress-track-expanded {
+    pointer-events: none !important;
+    cursor: default !important;
+}
+
 .mary-audio-player.is-unavailable .mary-player-mini__play-circle:disabled,
 .mary-audio-player.is-unavailable .mary-player-expanded__btn--play:disabled,
 .mary-audio-player.is-unavailable .mary-player-expanded__btn--seek:disabled,
@@ -8326,36 +8314,13 @@ body.mary-is-expanded #mary-root {
     overflow: visible;
 }
 
-/* Banda translúcida na borda óptica — centro transparente para o ícone */
+/* Sem banda/fundo circular atrás do ícone — só o anel SVG de progresso. */
 .mary-player-mini__play-circle.is-auto-next::before,
 .mary-player-mini__play-circle.is-audio-loading:not(.is-auto-next)::before,
 .mary-player-expanded__btn--play.is-auto-next::before,
 .mary-player-expanded__btn--play.is-audio-loading:not(.is-auto-next)::before {
-    content: '';
-    position: absolute;
-    inset: 3px;
-    border-radius: 50%;
-    background:
-        radial-gradient(
-            circle at center,
-            transparent 0 calc(50% - 2.5px),
-            color-mix(in srgb, currentColor 30%, transparent) calc(50% - 2.5px) 100%
-        );
-    z-index: 0;
-    pointer-events: none;
-    animation: mary-auto-next-in 160ms ease-out both;
-}
-
-/* Expanded play is larger: scale frosted band with button (64/38). */
-.mary-player-expanded__btn--play.is-auto-next::before,
-.mary-player-expanded__btn--play.is-audio-loading:not(.is-auto-next)::before {
-    inset: 5px;
-    background:
-        radial-gradient(
-            circle at center,
-            transparent 0 calc(50% - 4.2px),
-            color-mix(in srgb, currentColor 30%, transparent) calc(50% - 4.2px) 100%
-        );
+    content: none;
+    display: none;
 }
 
 .mary-player-mini__play-circle.is-auto-next i,
@@ -8529,12 +8494,8 @@ body.mary-is-expanded #mary-root {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .mary-player-mini__play-circle.is-auto-next::before,
     .mary-player-mini__play-circle.is-auto-next .mary-auto-next-ring,
-    .mary-player-mini__play-circle.is-audio-loading:not(.is-auto-next)::before,
-    .mary-player-expanded__btn--play.is-auto-next::before,
-    .mary-player-expanded__btn--play.is-auto-next .mary-auto-next-ring,
-    .mary-player-expanded__btn--play.is-audio-loading:not(.is-auto-next)::before {
+    .mary-player-expanded__btn--play.is-auto-next .mary-auto-next-ring {
         animation: none;
         opacity: 1;
     }
@@ -8672,7 +8633,7 @@ body.mary-is-expanded #mary-root {
 
 .mary-player-mini__progress {
     position: absolute;
-    bottom: 0;
+    top: 0;
     left: 0;
     width: 100%;
     height: 4px;
@@ -8685,7 +8646,7 @@ body.mary-is-expanded #mary-root {
     background: transparent;
     border-radius: 1px;
     position: absolute;
-    bottom: 0;
+    top: 0;
     left: 0;
     display: flex;
     align-items: center;
@@ -8698,7 +8659,7 @@ body.mary-is-expanded #mary-root {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 0;
+    top: 0;
     height: 2px;
     background: rgba(255, 255, 255, 0.3);
     border-radius: 1px;
@@ -8712,8 +8673,8 @@ body.mary-is-expanded #mary-root {
 .mary-player-mini__progress-track::after {
     content: '';
     position: absolute;
-    top: -30px;
-    bottom: -10px;
+    top: -10px;
+    bottom: -30px;
     left: 0;
     right: 0;
     background: transparent;
@@ -8728,7 +8689,7 @@ body.mary-is-expanded #mary-root {
     transition: width 0.1s linear, background-color 0.2s ease, height 0.2s ease;
     z-index: 1;
     position: absolute;
-    bottom: 0;
+    top: 0;
     left: 0;
     pointer-events: none;
 }
@@ -9682,17 +9643,6 @@ body.mary-is-dragging .mary-dock {
     .mary-player-expanded__btn--play.is-audio-loading:not(.is-auto-next) .mary-auto-next-ring {
         width: 63px;
         height: 63px;
-    }
-
-    .mary-player-expanded__btn--play.is-auto-next::before,
-    .mary-player-expanded__btn--play.is-audio-loading:not(.is-auto-next)::before {
-        inset: 4px;
-        background:
-            radial-gradient(
-                circle at center,
-                transparent 0 calc(50% - 3.5px),
-                color-mix(in srgb, currentColor 30%, transparent) calc(50% - 3.5px) 100%
-            );
     }
 
     .mary-player-expanded__btn--seek,

@@ -97,20 +97,6 @@
     }
 
     function removeStrip() {
-        if (rootEl) {
-            if (rootEl.__pwaMarqueeRo) {
-                try {
-                    rootEl.__pwaMarqueeRo.disconnect();
-                } catch (_) {
-                    /* ignore */
-                }
-                rootEl.__pwaMarqueeRo = null;
-            }
-            if (rootEl.__pwaMarqueeOnResize) {
-                global.removeEventListener('resize', rootEl.__pwaMarqueeOnResize);
-                rootEl.__pwaMarqueeOnResize = null;
-            }
-        }
         if (!rootEl) {
             const existing = document.getElementById(ROOT_ID);
             if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
@@ -165,8 +151,8 @@
         copy.className = 'qt-pwa-install__copy';
         copy.textContent =
             variant === 'ios'
-                ? 'No Safari: Compartilhar → Adicionar à Tela de Início.'
-                : 'Instale o Qualquer Tecla na tela inicial.';
+                ? 'Safari → Tela de Início'
+                : 'Instale o Qualquer Tecla';
 
         copyWrap.appendChild(copy);
         message.appendChild(icon);
@@ -220,59 +206,7 @@
         rootEl = buildStrip(variant);
         header.parentNode.insertBefore(rootEl, header);
         syncHeaderOffset();
-        requestAnimationFrame(() => {
-            syncHeaderOffset();
-            setupCopyMarquee(rootEl);
-        });
-    }
-
-    function setupCopyMarquee(root) {
-        if (!root) return;
-        const wrap = root.querySelector('.qt-pwa-install__copy-wrap');
-        const copy = root.querySelector('.qt-pwa-install__copy');
-        if (!wrap || !copy) return;
-
-        const update = () => {
-            if (copy.__pwaMarqueeFrame) return;
-            copy.__pwaMarqueeFrame = requestAnimationFrame(() => {
-                copy.__pwaMarqueeFrame = 0;
-
-                const hadMarquee = copy.classList.contains('is-marquee');
-                if (hadMarquee) {
-                    copy.classList.remove('is-marquee');
-                    wrap.classList.remove('has-marquee');
-                }
-
-                const scrollW = copy.scrollWidth;
-                const clientW = copy.clientWidth;
-                const shouldMarquee = scrollW > clientW && clientW > 0;
-
-                if (shouldMarquee === hadMarquee) {
-                    if (hadMarquee) {
-                        copy.classList.add('is-marquee');
-                        wrap.classList.add('has-marquee');
-                    }
-                    return;
-                }
-
-                if (shouldMarquee) {
-                    copy.classList.add('is-marquee');
-                    wrap.classList.add('has-marquee');
-                    copy.style.setProperty('--marquee-dist', '-' + (scrollW - clientW + 32) + 'px');
-                } else {
-                    copy.style.removeProperty('--marquee-dist');
-                }
-            });
-        };
-
-        update();
-        if (typeof ResizeObserver === 'function') {
-            const ro = new ResizeObserver(update);
-            ro.observe(wrap);
-            root.__pwaMarqueeRo = ro;
-        }
-        global.addEventListener('resize', update, { passive: true });
-        root.__pwaMarqueeOnResize = update;
+        requestAnimationFrame(syncHeaderOffset);
     }
 
     function syncHeaderOffset() {

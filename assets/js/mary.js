@@ -427,6 +427,12 @@
     <!-- MODO MINI -->
     <div class="mary-player-mini" id="mary-player-mini">
       <img src="" class="mary-player-mini__bg-cover" id="mary-player-bg-cover-mini" alt="" aria-hidden="true">
+
+      <div class="mary-player-mini__progress">
+        <div class="mary-player-mini__progress-track" id="mary-player-progress-track-mini">
+          <div class="mary-player-mini__progress-fill" id="mary-player-progress-fill-mini"></div>
+        </div>
+      </div>
       
       <div class="mary-player-mini__body">
         <button type="button" class="mary-player-mini__expand-btn" aria-label="Expandir"><i class="ph ph-caret-up"></i></button>
@@ -443,12 +449,6 @@
           <div class="mary-player-mini__controls">
             <button type="button" class="mary-player-mini__play-circle" id="mary-player-play-mini" aria-label="Reproduzir"><i class="ph-fill ph-play-circle"></i></button>
           </div>
-        </div>
-      </div>
-      
-      <div class="mary-player-mini__progress">
-        <div class="mary-player-mini__progress-track" id="mary-player-progress-track-mini">
-          <div class="mary-player-mini__progress-fill" id="mary-player-progress-fill-mini"></div>
         </div>
       </div>
     </div>

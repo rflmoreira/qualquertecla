@@ -469,6 +469,8 @@
         let currentUrl = String(url || '');
         let isSwappingAudio = false;
         let pendingSwapUrl = null;
+        // Pausado por Next manual→ad: impede toggle/play de retomar a matéria durante o anúncio.
+        let heldForAdBreak = false;
         const ctrlTraceId = MaryAudioTrace.enabled ? ('ctrl-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7)) : '';
 
         let currentOnChrome = onChrome;
@@ -716,6 +718,8 @@
 
                 const processSwap = (targetUrl) => {
                     if (!audio) return;
+                    // Nova faixa: libera hold do ad manual (se houver).
+                    heldForAdBreak = false;
                     isSwappingAudio = true;
                     pendingSwapUrl = null;
                     currentUrl = targetUrl;
@@ -937,6 +941,15 @@
                     el.pause();
                     return true;
                 }
+                // Next manual→ad / ad audível: não retomar a matéria.
+                if (heldForAdBreak || isAdAudioPlaying()) {
+                    MaryAudioTrace.log('toggle-blocked', {
+                        el: el,
+                        ctrlId: ctrlTraceId,
+                        note: heldForAdBreak ? 'heldForAdBreak' : 'adAudioPlaying'
+                    });
+                    return false;
+                }
                 try {
                     const dur = effectiveDuration(el);
                     if (dur && el.currentTime >= dur - 0.5) {
@@ -964,7 +977,41 @@
                     return false;
                 }
             },
+            /**
+             * Next manual: pausa a matéria e invalida retomada até swapAndPlay / release.
+             * Não toca em adAudio.
+             */
+            holdForAdBreak() {
+                heldForAdBreak = true;
+                if (!audio || audio.paused) {
+                    MaryAudioTrace.log('holdForAdBreak', {
+                        el: audio,
+                        ctrlId: ctrlTraceId,
+                        note: 'already-paused',
+                        extra: { heldForAdBreak: true }
+                    });
+                    return;
+                }
+                try {
+                    MaryAudioTrace.log('pause-call', {
+                        el: audio,
+                        ctrlId: ctrlTraceId,
+                        note: 'holdForAdBreak'
+                    });
+                    audio.pause();
+                } catch (_) { /* ignore */ }
+                MaryAudioTrace.log('holdForAdBreak', {
+                    el: audio,
+                    ctrlId: ctrlTraceId,
+                    note: 'article-paused-for-ad',
+                    extra: { heldForAdBreak: true, paused: audio ? audio.paused : null }
+                });
+            },
+            releaseAdBreakHold() {
+                heldForAdBreak = false;
+            },
             seekRatio(ratio) {
+                if (isAdAudioPlaying() || isAdBreakActive()) return false;
                 const el = ensure();
                 if (!el) return false;
                 const dur = effectiveDuration(el);
@@ -1000,6 +1047,8 @@
             isPlaying: isPlayingNow,
             getDuration: () => effectiveDuration(audio),
             seekBy(delta) {
+                // ±10s bloqueado enquanto o anúncio está audível.
+                if (isAdAudioPlaying()) return false;
                 const el = ensure();
                 if (!el) return false;
                 const dur = effectiveDuration(el);
@@ -1083,8 +1132,8 @@
         if (mp.cover) mp.cover.src = src;
         if (mp.ambientBg) mp.ambientBg.style.backgroundImage = `url(${src})`;
 
-        if (mp.nextBtn) mp.nextBtn.disabled = !__maryNav.nextArt;
-        if (mp.prevBtn) mp.prevBtn.disabled = !__maryNav.prevArt;
+        if (mp.nextBtn) mp.nextBtn.disabled = isAdBreakActive() || !__maryNav.nextArt;
+        if (mp.prevBtn) mp.prevBtn.disabled = isAdBreakActive() || !__maryNav.prevArt;
 
         requestAnimationFrame(() => {
             observeMarqueeTitles(mp);
@@ -1148,6 +1197,7 @@
     const AD_BREAK_SEC = 8;
     const AD_BREAK_MS = AD_BREAK_SEC * 1000;
     const AD_BREAK_SRC = 'assets/audio/qt-ad-break.wav';
+    const AD_BREAK_ARTWORK = 'assets/img/brand/qt-ad-break-cover.jpg';
     let adAudio = null;
     let adBreakChromeBackup = null;
 
@@ -1165,6 +1215,45 @@
         } catch (_) {
             /* ignore */
         }
+    }
+
+    /** Progresso visual do anúncio na barra/tempos do player (sem seek). */
+    function updateAdBreakProgressUi() {
+        if (!adAudio) return;
+        if (!isAdBreakActive()) return;
+        const mp = window.Mary && window.Mary.active && window.Mary.active.player;
+        if (!mp) return;
+
+        const cur = Math.max(0, Number(adAudio.currentTime) || 0);
+        const durRaw = Number(adAudio.duration);
+        const hasDur = Number.isFinite(durRaw) && durRaw > 0;
+        const ratio = hasDur ? Math.max(0, Math.min(1, cur / durRaw)) : (adAudio.ended ? 1 : 0);
+
+        if (mp.progressFill) mp.progressFill.style.width = (ratio * 100) + '%';
+        if (mp.author) mp.author.textContent = 'Qualquer Tecla';
+        if (mp.timeCurrent) mp.timeCurrent.textContent = formatTime(cur);
+        if (mp.timeRemaining) {
+            const rem = hasDur ? Math.max(0, durRaw - cur) : 0;
+            mp.timeRemaining.textContent = '-' + formatTime(rem);
+        }
+    }
+
+    function ensureAdProgressBinding() {
+        if (!adAudio || adAudio.__maryAdProgressBound) return;
+        adAudio.__maryAdProgressBound = true;
+        const onTick = () => {
+            updateAdBreakProgressUi();
+        };
+        adAudio.addEventListener('timeupdate', onTick);
+        adAudio.addEventListener('durationchange', onTick);
+        adAudio.addEventListener('seeked', onTick);
+        adAudio.addEventListener('ended', () => {
+            // Preenche a barra a 100% no instante do fim.
+            if (!isAdBreakActive()) return;
+            const mp = window.Mary && window.Mary.active && window.Mary.active.player;
+            if (mp && mp.progressFill) mp.progressFill.style.width = '100%';
+            updateAdBreakProgressUi();
+        });
     }
 
     /**
@@ -1207,13 +1296,13 @@
     function setMediaSessionAdBreak(remainingSec) {
         if (!('mediaSession' in navigator)) return;
         const timeStr = formatAdCountdown(remainingSec);
-        const artSrc = resolveAbsoluteUrl('assets/img/brand/qt-android-chrome-512x512.png');
+        const artSrc = resolveAbsoluteUrl(AD_BREAK_ARTWORK);
         try {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: 'Anúncio',
                 artist: timeStr + ' · Qualquer Tecla',
                 album: 'Qualquer Tecla',
-                artwork: [{ src: artSrc, sizes: '512x512', type: 'image/png' }]
+                artwork: [{ src: artSrc, sizes: '1024x1024', type: 'image/jpeg' }]
             });
             navigator.mediaSession.playbackState = 'playing';
         } catch (e) {
@@ -1227,6 +1316,8 @@
      */
     function requestAdvanceWithAd(targetArt) {
         if (!targetArt) return;
+        // Next durante anúncio: ignorar (não pular, não iniciar segundo fluxo).
+        if (isAdAudioPlaying()) return;
         if (isAdBreakActive()) {
             // Já em anúncio: segundo next = pular o ad e avançar.
             clearAutoNext();
@@ -1238,6 +1329,13 @@
         if (isAutoNextActive()) {
             clearAutoNext();
         }
+
+        // Artigo 1 ⏹️ antes do anúncio — não usa stopAdAudio; não toca adAudio.
+        const activeCtrl = window.__maryActiveFileController;
+        if (activeCtrl && typeof activeCtrl.holdForAdBreak === 'function') {
+            activeCtrl.holdForAdBreak();
+        }
+
         startAutoNext(
             targetArt,
             getPlayingSlug(''),
@@ -1263,12 +1361,14 @@
                 src: 'assets/audio/qt-ad-break.wav'
             });
         }
+        ensureAdProgressBinding();
         try {
             // Sem loop na contagem do ad; o loop liga só no handoff (finishAdBreak/swap).
             adAudio.loop = false;
             MaryAudioTrace.log('pause-call', { el: adAudio, note: 'playAdAudio:reset' });
             adAudio.pause();
             adAudio.currentTime = 0;
+            updateAdBreakProgressUi();
             const playPromise = adAudio.play();
             MaryAudioTrace.trackPlay(adAudio, playPromise, 'playAdAudio');
             if (playPromise && typeof playPromise.catch === 'function') {
@@ -1318,15 +1418,14 @@
         const mp = window.Mary && window.Mary.active && window.Mary.active.player;
         if (mp) {
             if (mp.title) mp.title.textContent = label;
-            if (mp.author) mp.author.textContent = timeStr + ' · Qualquer Tecla';
-            if (mp.timeCurrent) mp.timeCurrent.textContent = timeStr;
-            if (mp.timeRemaining) mp.timeRemaining.textContent = label;
-            // Capa do anúncio: marca (não a do artigo).
-            const adCover = resolveAbsoluteUrl('assets/img/brand/qt-android-chrome-512x512.png');
+            // Autor = marca; tempo fica só nos campos de tempo / barra.
+            if (mp.author) mp.author.textContent = 'Qualquer Tecla';
+            const adCover = resolveAbsoluteUrl(AD_BREAK_ARTWORK);
             if (mp.cover) mp.cover.src = adCover;
             if (mp.ambientBg) mp.ambientBg.style.backgroundImage = `url(${adCover})`;
         }
         setMediaSessionAdBreak(remainingSec);
+        updateAdBreakProgressUi();
         getPlayButtons().forEach((btn) => {
             let count = btn.querySelector('.mary-auto-next-count');
             if (!count) {
@@ -1471,6 +1570,41 @@
         return Boolean(autoNextSession && autoNextSession.mode === 'ad');
     }
 
+    /** Anúncio efetivamente audível (fonte de verdade para bloquear play da matéria). */
+    function isAdAudioPlaying() {
+        return Boolean(adAudio && !adAudio.paused && !adAudio.ended);
+    }
+
+    /** Desabilita −10 / ◀ / ▶ / +10 durante o anúncio; reativa ao sair. */
+    function setAdTransportButtonsLocked(locked) {
+        const mp = window.Mary && window.Mary.active && window.Mary.active.player;
+        if (!mp) return;
+        const playerEl = mp.el || document.getElementById('mary-audio-player');
+        const unavailable = Boolean(playerEl && playerEl.classList.contains('is-unavailable'));
+        const lock = Boolean(locked);
+
+        const setBtn = (btn, forceDisable) => {
+            if (!btn) return;
+            const disable = forceDisable || unavailable;
+            btn.disabled = disable;
+            if (disable) btn.setAttribute('aria-disabled', 'true');
+            else btn.removeAttribute('aria-disabled');
+        };
+
+        // ±10s: só ad ou unavailable
+        setBtn(mp.seekBackBtn, lock);
+        setBtn(mp.seekForwardBtn, lock);
+
+        // Next/Prev: durante ad forçar off; ao sair, respeitar vizinhos da lista
+        if (lock) {
+            setBtn(mp.prevBtn, true);
+            setBtn(mp.nextBtn, true);
+        } else {
+            setBtn(mp.prevBtn, !__maryNav.prevArt);
+            setBtn(mp.nextBtn, !__maryNav.nextArt);
+        }
+    }
+
     function restoreAutoNextUi() {
         const player = document.getElementById('mary-audio-player');
         getPlayButtons().forEach((btn) => {
@@ -1495,6 +1629,7 @@
             player.style.removeProperty('--mary-auto-next-drain-duration');
         }
         restoreAdBreakChrome();
+        setAdTransportButtonsLocked(false);
     }
 
     /**
@@ -1513,6 +1648,11 @@
         // Em handoff seamless, o ad permanece até playing/play resolve da próxima faixa.
         if (!(opts && opts.keepAdAudio)) {
             stopAdAudio();
+            // Cancelamento do ad (play/dismiss): permite retomar matéria depois.
+            const activeCtrl = window.__maryActiveFileController;
+            if (activeCtrl && typeof activeCtrl.releaseAdBreakHold === 'function') {
+                activeCtrl.releaseAdBreakHold();
+            }
         }
         autoNextSession = null;
         restoreAutoNextUi();
@@ -1558,6 +1698,7 @@
             const remaining = Number.isFinite(opts.remainingSec) ? opts.remainingSec : AD_BREAK_SEC;
             updateAdBreakCountdown(remaining);
         }
+        setAdTransportButtonsLocked(isAd);
     }
 
     /**
@@ -1862,19 +2003,25 @@
         if (!('mediaSession' in navigator)) return;
         try {
             navigator.mediaSession.setActionHandler('play', () => {
+                // Não ressuscitar matéria enquanto o anúncio toca.
+                if (isAdAudioPlaying()) return;
                 const ctrl = window.__maryActiveFileController;
                 if (ctrl) ctrl.toggle();
             });
             navigator.mediaSession.setActionHandler('pause', () => {
+                // Não interferir no adAudio; ignore pause de matéria durante anúncio.
+                if (isAdAudioPlaying()) return;
                 const ctrl = window.__maryActiveFileController;
                 if (ctrl) ctrl.toggle();
             });
             navigator.mediaSession.setActionHandler('nexttrack', () => {
+                if (isAdAudioPlaying()) return;
                 if (__maryNav.nextArt) {
                     requestAdvanceWithAd(__maryNav.nextArt);
                 }
             });
             navigator.mediaSession.setActionHandler('previoustrack', () => {
+                if (isAdAudioPlaying()) return;
                 if (__maryNav.prevArt && typeof __maryNav.advance === 'function') {
                     __maryNav.advance(__maryNav.prevArt);
                 } else {
@@ -1995,9 +2142,11 @@
             mp.progressFill.style.width = (ratio * 100) + '%';
         };
 
-        const onProgress = (data) => {
+            const onProgress = (data) => {
             if (dead || !data) return;
             if (isDraggingProgress) return;
+            // Durante anúncio, a barra/tempo vêm de adAudio — não sobrescrever.
+            if (isAdBreakActive() || isAdAudioPlaying()) return;
 
             const cur = Number(data.current) || 0;
             const durRaw = Number(data.duration);
@@ -2077,8 +2226,28 @@
             if (dead) return;
             if (!window.Mary || !window.Mary.active || !window.Mary.active.player) return;
             const mp = window.Mary.active.player;
-            if (mp.nextBtn) mp.nextBtn.disabled = !__maryNav.nextArt;
-            if (mp.prevBtn) mp.prevBtn.disabled = !__maryNav.prevArt;
+            // Durante anúncio, manter Next/Prev apagados (não reabilitar via vizinhos).
+            if (isAdBreakActive()) {
+                if (mp.nextBtn) {
+                    mp.nextBtn.disabled = true;
+                    mp.nextBtn.setAttribute('aria-disabled', 'true');
+                }
+                if (mp.prevBtn) {
+                    mp.prevBtn.disabled = true;
+                    mp.prevBtn.setAttribute('aria-disabled', 'true');
+                }
+                return;
+            }
+            if (mp.nextBtn) {
+                mp.nextBtn.disabled = !__maryNav.nextArt;
+                if (__maryNav.nextArt) mp.nextBtn.removeAttribute('aria-disabled');
+                else mp.nextBtn.setAttribute('aria-disabled', 'true');
+            }
+            if (mp.prevBtn) {
+                mp.prevBtn.disabled = !__maryNav.prevArt;
+                if (__maryNav.prevArt) mp.prevBtn.removeAttribute('aria-disabled');
+                else mp.prevBtn.setAttribute('aria-disabled', 'true');
+            }
         };
 
         // Sempre recalcular vizinhos para o slug da faixa/página atual.
@@ -2105,6 +2274,8 @@
 
                 const updateSeek = (e, isFinal) => {
                     if (mp.el && mp.el.classList.contains('is-unavailable')) return;
+                    // Anúncio: barra só visual — sem seek.
+                    if (isAdAudioPlaying() || isAdBreakActive()) return;
                     if (!controller || controller.mode !== 'file') return;
                     const activeTrack = mp.el.classList.contains('is-expanded')
                         ? mp.el.querySelector('#mary-player-progress-track-expanded')
@@ -2161,6 +2332,7 @@
                 mp.progressTrack.addEventListener('mousemove', (e) => {
                     if (mp.el && !mp.el.classList.contains('has-started')) return;
                     if (isDraggingProgress) return;
+                    if (isAdAudioPlaying() || isAdBreakActive()) return;
                     const activeTrack = mp.el.classList.contains('is-expanded')
                         ? mp.el.querySelector('#mary-player-progress-track-expanded')
                         : mp.el.querySelector('#mary-player-progress-track-mini');
@@ -2198,6 +2370,7 @@
 
                 mp.progressTrack.addEventListener('mousedown', (e) => {
                     if (mp.el && !mp.el.classList.contains('has-started')) return;
+                    if (isAdAudioPlaying() || isAdBreakActive()) return;
                     if (mp.el) mp.el.dataset.userInteracted = 'true';
                     isDraggingProgress = true;
                     updateSeek(e, false);
@@ -2225,6 +2398,10 @@
                             touchMode = 'ignore';
                             return;
                         }
+                        if (isAdAudioPlaying() || isAdBreakActive()) {
+                            touchMode = 'ignore';
+                            return;
+                        }
                         touchMode = 'seek';
                         isDraggingProgress = true;
                         updateSeek(e, false);
@@ -2237,6 +2414,10 @@
                     if (touchMode === 'scroll' || touchMode === 'ignore') return;
 
                     if (touchMode === '') {
+                        if (isAdAudioPlaying() || isAdBreakActive()) {
+                            touchMode = 'ignore';
+                            return;
+                        }
                         const dx = Math.abs(e.touches[0].clientX - touchStartX);
                         const dy = Math.abs(e.touches[0].clientY - touchStartY);
                         if (dx > 7 && dx > dy) {
@@ -2274,6 +2455,7 @@
                 mp.seekBackBtn.onclick = (e) => {
                     e.stopPropagation();
                     if (mp.el && mp.el.classList.contains('is-unavailable')) return;
+                    if (isAdAudioPlaying() || isAdBreakActive()) return;
                     if (controller && controller.mode === 'file') controller.seekBy(-10);
                 };
             }
@@ -2282,6 +2464,7 @@
                 mp.seekForwardBtn.onclick = (e) => {
                     e.stopPropagation();
                     if (mp.el && mp.el.classList.contains('is-unavailable')) return;
+                    if (isAdAudioPlaying() || isAdBreakActive()) return;
                     if (controller && controller.mode === 'file') controller.seekBy(10);
                 };
             }
@@ -2372,6 +2555,8 @@
                     if (e) e.stopPropagation();
                     if (mp.el && mp.el.classList.contains('is-unavailable')) return;
                     if (!canFile) return;
+                    // Durante anúncio: ignorar (não cancelar ad, não play da matéria).
+                    if (isAdAudioPlaying()) return;
                     if (isAutoNextActive()) {
                         autoNextDismissed = true;
                         clearAutoNext();
@@ -2444,6 +2629,7 @@
 
             if (mp.nextBtn) {
                 mp.nextBtn.onclick = () => {
+                    if (isAdAudioPlaying()) return;
                     autoNextDismissed = true;
                     if (__maryNav.nextArt) requestAdvanceWithAd(__maryNav.nextArt);
                 };
@@ -2451,6 +2637,7 @@
 
             if (mp.prevBtn) {
                 mp.prevBtn.onclick = () => {
+                    if (isAdAudioPlaying()) return;
                     autoNextDismissed = true;
                     clearAutoNext();
                     if (__maryNav.prevArt) {
@@ -2593,6 +2780,8 @@
 
         const onEnded = () => {
             if (dead) return;
+            // Ad break manual já em curso: não reencadear nem retomar a matéria.
+            if (isAdBreakActive()) return;
             if (handlingEnded) return;
             handlingEnded = true;
             setTimeout(() => { handlingEnded = false; }, 2000);
@@ -2792,6 +2981,8 @@
 
         button.addEventListener('click', async () => {
             if (dead) return;
+            // Bloqueia retomada da matéria enquanto o anúncio está audível.
+            if (isAdAudioPlaying()) return;
             if (window.__maryActiveFileController && window.__maryActiveFileController !== controller) {
                 if (typeof window.__maryActiveFileController.stop === 'function') {
                     window.__maryActiveFileController.stop();
@@ -2810,7 +3001,7 @@
                     const resumeOnVisible = () => {
                         if (document.visibilityState === 'visible') {
                             document.removeEventListener('visibilitychange', resumeOnVisible);
-                            if (!dead && controller && !controller.isPlaying()) {
+                            if (!dead && controller && !controller.isPlaying() && !isAdAudioPlaying()) {
                                 controller.toggle();
                             }
                         }
