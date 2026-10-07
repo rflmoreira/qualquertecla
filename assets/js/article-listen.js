@@ -833,6 +833,7 @@
                             finishSwapLock();
                             return;
                         }
+                        markMaryPlayerHasStarted();
                         const playPromise = audio.play();
                         MaryAudioTrace.trackPlay(audio, playPromise, isRetry ? 'swapAndPlay:retry' : 'swapAndPlay', {
                             ctrlId: ctrlTraceId,
@@ -951,6 +952,7 @@
                     return false;
                 }
                 try {
+                    markMaryPlayerHasStarted();
                     const dur = effectiveDuration(el);
                     if (dur && el.currentTime >= dur - 0.5) {
                         el.currentTime = 0;
@@ -1077,6 +1079,9 @@
             },
             getVolume() {
                 return audio ? audio.volume : 1;
+            },
+            getMediaElement() {
+                return audio;
             }
         };
     }
@@ -1101,6 +1106,26 @@
         return fallbackSlug ? String(fallbackSlug) : '';
     }
 
+    /** Marca o player como já iniciado (scrub/tip liberados). */
+    function markMaryPlayerHasStarted() {
+        try {
+            const mp = window.Mary && window.Mary.active && window.Mary.active.player;
+            if (mp && mp.el) mp.el.classList.add('has-started');
+        } catch (_) { /* ignore */ }
+    }
+
+    /**
+     * Hover/seek do progresso: has-started OU áudio com metadata.
+     * Ad break continua bloqueado no call site.
+     */
+    function canInteractProgress(controller, mpEl) {
+        if (mpEl && mpEl.classList.contains('has-started')) return true;
+        const audio = controller && typeof controller.getMediaElement === 'function'
+            ? controller.getMediaElement()
+            : null;
+        return Boolean(audio && audio.currentSrc && audio.readyState >= 1);
+    }
+
     /**
      * Atualiza player in-page + MediaSession para a faixa tocando.
      * Usado no advance seamless (rebind DOM pode não rodar em BG).
@@ -1116,7 +1141,8 @@
         const mp = window.Mary && window.Mary.active && window.Mary.active.player;
         if (!mp || !mp.el) return;
 
-        mp.el.classList.remove('has-started');
+        // Não remover has-started: o tip/scrub do progresso não pode
+        // depender do gap até o próximo speaking após advance/rebind.
         mp.el.dataset.maryCurrentArticle = art.slug;
         delete mp.el.dataset.userInteracted;
 
@@ -2360,49 +2386,135 @@
                     document.body.classList.remove('mary-is-dragging');
                 };
 
-                mp.progressTrack.addEventListener('mousemove', (e) => {
-                    if (mp.el && !mp.el.classList.contains('has-started')) return;
+                // Tip único no body (fixed). Nunca reparentar no hover — mover o nó
+                // para fora da track dispara mouseleave e esconde o tip na 1ª passagem.
+                const ensureFloatingHoverTip = () => {
+                    let tip = document.getElementById('mary-player-progress-hover-time-float');
+                    if (!tip) {
+                        tip = document.createElement('div');
+                        tip.id = 'mary-player-progress-hover-time-float';
+                        tip.className = 'mary-player-progress-hover-time is-viewport-floating';
+                        tip.setAttribute('aria-hidden', 'true');
+                        tip.hidden = true;
+                        tip.textContent = '0:00';
+                        document.body.appendChild(tip);
+                    }
+                    return tip;
+                };
+
+                const updateHoverTimeTip = (track, ratio, clientX) => {
+                    const tip = ensureFloatingHoverTip();
+                    let label = '0:00';
+                    if (controller && typeof controller.getDuration === 'function') {
+                        const dur = controller.getDuration();
+                        if (dur > 0) label = formatTime(dur * ratio);
+                    }
+                    tip.textContent = label;
+                    tip.hidden = false;
+
+                    const rect = track.getBoundingClientRect();
+                    void tip.offsetWidth;
+                    const tipW = tip.offsetWidth || 40;
+                    const tipH = tip.offsetHeight || 18;
+                    const clampedX = Math.max(
+                        tipW / 2 + 4,
+                        Math.min(window.innerWidth - tipW / 2 - 4, clientX)
+                    );
+                    // Sempre acima da borda superior da track (mini ou expandido).
+                    tip.style.left = clampedX + 'px';
+                    tip.style.top = Math.max(4, rect.top - tipH - 6) + 'px';
+                    tip.style.bottom = 'auto';
+                };
+
+                const hideHoverTimeTips = () => {
+                    const tip = document.getElementById('mary-player-progress-hover-time-float');
+                    if (!tip) return;
+                    tip.hidden = true;
+                    tip.textContent = '0:00';
+                    tip.style.left = '';
+                    tip.style.top = '';
+                    tip.style.bottom = '';
+                };
+
+                // Bind direto nas tracks (não via Proxy sync) para o leave do expandido
+                // não cancelar o hover do mini.
+                const miniTrackEl = mp.el.querySelector('#mary-player-progress-track-mini');
+                const expandedTrackEl = mp.el.querySelector('#mary-player-progress-track-expanded');
+
+                let hoverHideTimer = 0;
+                let lastPointerX = -1;
+                let lastPointerY = -1;
+
+                const onProgressHoverMove = (e) => {
                     if (isDraggingProgress) return;
                     if (isAdAudioPlaying() || isAdBreakActive()) return;
-                    const activeTrack = mp.el.classList.contains('is-expanded')
-                        ? mp.el.querySelector('#mary-player-progress-track-expanded')
-                        : mp.el.querySelector('#mary-player-progress-track-mini');
-                    if (!activeTrack) return;
-                    const rect = activeTrack.getBoundingClientRect();
+                    if (!canInteractProgress(controller, mp.el)) return;
+                    const track = e.currentTarget;
+                    const wantExpanded = mp.el.classList.contains('is-expanded');
+                    if (wantExpanded && track !== expandedTrackEl) return;
+                    if (!wantExpanded && track !== miniTrackEl) return;
+                    lastPointerX = e.clientX;
+                    lastPointerY = e.clientY;
+                    if (hoverHideTimer) {
+                        window.clearTimeout(hoverHideTimer);
+                        hoverHideTimer = 0;
+                    }
+                    const rect = track.getBoundingClientRect();
                     let ratio = (e.clientX - rect.left) / rect.width;
                     ratio = Math.max(0, Math.min(1, ratio));
-                    activeTrack.style.setProperty('--hover-ratio', ratio);
-                    activeTrack.classList.add('is-hovering');
-
-                    if (controller && typeof controller.getDuration === 'function' && mp.timeCurrent && mp.timeRemaining) {
-                        const dur = controller.getDuration();
-                        if (dur > 0) {
-                            const hoverCur = dur * ratio;
-                            const hoverRem = dur - hoverCur;
-                            mp.timeCurrent.textContent = formatTime(hoverCur);
-                            mp.timeRemaining.textContent = '-' + formatTime(hoverRem);
-                        }
-                    }
-                });
-                const clearHover = () => {
-                    if (mp.el) {
-                        const tr1 = mp.el.querySelector('#mary-player-progress-track-expanded');
-                        const tr2 = mp.el.querySelector('#mary-player-progress-track-mini');
-                        if (tr1) tr1.classList.remove('is-hovering');
-                        if (tr2) tr2.classList.remove('is-hovering');
-                    }
-                    if (controller && typeof controller.emitCurrentProgress === 'function') {
-                        controller.emitCurrentProgress();
-                    }
+                    track.style.setProperty('--hover-ratio', ratio);
+                    track.classList.add('is-hovering');
+                    updateHoverTimeTip(track, ratio, e.clientX);
                 };
-                mp.progressTrack.addEventListener('mouseleave', clearHover);
+
+                const clearHover = (e) => {
+                    if (e && e.currentTarget) {
+                        const wantExpanded = mp.el && mp.el.classList.contains('is-expanded');
+                        if (wantExpanded && e.currentTarget !== expandedTrackEl) return;
+                        if (!wantExpanded && e.currentTarget !== miniTrackEl) return;
+                    }
+                    // Debounce: layout no 1º hover pode disparar mouseleave fantasma.
+                    // Checa a posição do evento de leave (não o last move na track),
+                    // senão o tip nunca some no leave real.
+                    if (hoverHideTimer) window.clearTimeout(hoverHideTimer);
+                    const track = e && e.currentTarget;
+                    const leaveX = e && typeof e.clientX === 'number' ? e.clientX : lastPointerX;
+                    const leaveY = e && typeof e.clientY === 'number' ? e.clientY : lastPointerY;
+                    hoverHideTimer = window.setTimeout(() => {
+                        hoverHideTimer = 0;
+                        if (track && leaveX >= 0 && leaveY >= 0) {
+                            const under = document.elementFromPoint(leaveX, leaveY);
+                            if (under && (track === under || track.contains(under))) return;
+                        }
+                        if (mp.el) {
+                            if (miniTrackEl) miniTrackEl.classList.remove('is-hovering');
+                            if (expandedTrackEl) expandedTrackEl.classList.remove('is-hovering');
+                        }
+                        hideHoverTimeTips();
+                        if (controller && typeof controller.emitCurrentProgress === 'function') {
+                            controller.emitCurrentProgress();
+                        }
+                    }, 50);
+                };
+
+                if (miniTrackEl) {
+                    miniTrackEl.addEventListener('mousemove', onProgressHoverMove);
+                    miniTrackEl.addEventListener('mouseleave', clearHover);
+                }
+                if (expandedTrackEl) {
+                    expandedTrackEl.addEventListener('mousemove', onProgressHoverMove);
+                    expandedTrackEl.addEventListener('mouseleave', clearHover);
+                }
                 mp.progressTrack.addEventListener('touchend', clearHover);
                 mp.progressTrack.addEventListener('touchcancel', clearHover);
 
                 mp.progressTrack.addEventListener('mousedown', (e) => {
-                    if (mp.el && !mp.el.classList.contains('has-started')) return;
                     if (isAdAudioPlaying() || isAdBreakActive()) return;
+                    if (!canInteractProgress(controller, mp.el)) return;
                     if (mp.el) mp.el.dataset.userInteracted = 'true';
+                    hideHoverTimeTips();
+                    if (miniTrackEl) miniTrackEl.classList.remove('is-hovering');
+                    if (expandedTrackEl) expandedTrackEl.classList.remove('is-hovering');
                     isDraggingProgress = true;
                     updateSeek(e, false);
                     window.addEventListener('mousemove', onMove, { passive: false });
@@ -2456,11 +2568,7 @@
                     }
 
                     if (mp.progressTrack.contains(e.target)) {
-                        if (!mp.el.classList.contains('has-started')) {
-                            touchMode = 'ignore';
-                            return;
-                        }
-                        if (isAdAudioPlaying() || isAdBreakActive()) {
+                        if (isAdAudioPlaying() || isAdBreakActive() || !canInteractProgress(controller, mp.el)) {
                             touchMode = 'ignore';
                             return;
                         }
@@ -2642,8 +2750,10 @@
                         return;
                     }
                     if (controller && controller.mode === 'file') {
+                        markMaryPlayerHasStarted();
                         controller.toggle();
                     } else if (canFile) {
+                        markMaryPlayerHasStarted();
                         button.click();
                     }
                 };
@@ -3074,6 +3184,7 @@
             }
 
             if (controller && controller.mode === 'file') {
+                markMaryPlayerHasStarted();
                 const ok = await controller.toggle();
 
                 if (ok === 'blocked') {

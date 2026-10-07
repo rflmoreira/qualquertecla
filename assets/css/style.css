@@ -8214,9 +8214,10 @@ body.mary-is-expanded #mary-root {
     height: calc(64px + env(safe-area-inset-bottom, 0px));
     padding: 0;
     border-radius: 0;
-    background-color: var(--chrome-glass-bg);
-    backdrop-filter: blur(var(--chrome-glass-blur));
-    -webkit-backdrop-filter: blur(var(--chrome-glass-blur));
+    /* Vidro no ::before — libera overflow da bolinha acima da borda sem perder o blur. */
+    background-color: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     border-top: 0;
     box-shadow: none;
     color: var(--text-primary);
@@ -8227,8 +8228,22 @@ body.mary-is-expanded #mary-root {
     will-change: height;
 }
 
-/* Hit-box só no mini — safe-area abaixo não captura o gesto de home. */
+.mary-audio-player:not(.is-expanded)::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-color: var(--chrome-glass-bg);
+    backdrop-filter: blur(var(--chrome-glass-blur));
+    -webkit-backdrop-filter: blur(var(--chrome-glass-blur));
+    pointer-events: none;
+}
+
+/* Hit-box só no mini — safe-area abaixo não captura o gesto de home.
+   Overflow estável (visível): evita mouseleave fantasma ao togglar no 1º hover.
+   Vidro fica no ::before, então a bolinha atravessa a borda sem clip. */
 .mary-audio-player:not(.is-expanded) {
+    overflow: visible;
     pointer-events: none;
 }
 
@@ -8272,6 +8287,10 @@ body.mary-is-expanded #mary-root {
 .mary-audio-player.is-unavailable .mary-player-expanded__btn--seek:disabled,
 .mary-audio-player.is-unavailable .mary-speed-btn:disabled {
     opacity: 0.35;
+}
+
+.mary-audio-player.is-expanded::before {
+    display: none;
 }
 
 .mary-audio-player.is-expanded {
@@ -8712,13 +8731,14 @@ body.mary-is-expanded #mary-root {
     width: 100%;
     height: 4px;
     z-index: 5;
+    overflow: visible;
 }
 
 .mary-player-mini__progress-track {
     width: 100%;
     height: 4px;
     background: transparent;
-    border-radius: 1px;
+    border-radius: 0;
     position: absolute;
     top: 0;
     left: 0;
@@ -8726,6 +8746,7 @@ body.mary-is-expanded #mary-root {
     align-items: center;
     cursor: pointer;
     touch-action: none; /* Previne que o arraste dê scroll na página */
+    overflow: visible;
 }
 
 .mary-player-mini__progress-track::before {
@@ -8744,6 +8765,47 @@ body.mary-is-expanded #mary-root {
     background: linear-gradient(to right, rgba(255, 255, 255, 0.6) calc(var(--hover-ratio, 0) * 100%), rgba(255, 255, 255, 0.3) calc(var(--hover-ratio, 0) * 100%));
 }
 
+/* Timer flutuante no hover da barra — mesma superfície do balão do Orb.
+   Visibilidade só via [hidden] (evita bug display:none→opacity na 1ª passagem). */
+.mary-player-progress-hover-time {
+    --mary-tip-bg: #222;
+    --mary-tip-text: #f3f3f3;
+    position: absolute;
+    left: 0;
+    z-index: 10050;
+    transform: translateX(-50%);
+    padding: 0.12rem 0.4rem;
+    border-radius: var(--radius-sm, 4px);
+    background: var(--mary-tip-bg);
+    color: var(--mary-tip-text);
+    font-family: var(--font-ui);
+    font-size: 0.68rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 0 0 1px var(--mary-stroke, var(--qualquer-tecla-gray-dark));
+}
+
+.mary-player-progress-hover-time[hidden] {
+    display: none !important;
+}
+
+[data-theme="light"] .mary-player-progress-hover-time {
+    --mary-tip-bg: var(--surface);
+    --mary-tip-text: var(--text-primary);
+}
+
+/* Tip flutuante no body (acima da borda da track / mini). */
+.mary-player-progress-hover-time.is-viewport-floating {
+    position: fixed;
+    top: 0;
+    bottom: auto;
+    z-index: 10050;
+}
+
 .mary-player-mini__progress-track::after {
     content: '';
     position: absolute;
@@ -8759,47 +8821,72 @@ body.mary-is-expanded #mary-root {
 .mary-player-mini__progress-fill {
     width: 0%;
     height: 2px;
-    background: var(--qualquer-tecla-gold);
-    border-radius: 1px;
-    transition: width 0.1s linear, background-color 0.2s ease, height 0.2s ease;
+    /* Degradê mostarda → ouro claro até o playhead. */
+    background: linear-gradient(
+        90deg,
+        var(--brand-mustard-hover) 0%,
+        var(--brand-mustard) 52%,
+        color-mix(in srgb, var(--brand-mustard) 55%, #fff) 100%
+    );
+    border-radius: 0;
+    transition: width 0.1s linear, background 0.2s ease, height 0.2s ease;
     z-index: 1;
     position: absolute;
     top: 0;
     left: 0;
     pointer-events: none;
+    overflow: visible;
 }
 
 .mary-player-mini__progress-fill::after {
-    display: none !important;
     content: '';
     position: absolute;
     right: -6px;
+    /* Centrada na barra — metade passa pela borda de cima do mini. */
     top: 50%;
     transform: translateY(-50%) scale(0);
     width: 12px;
     height: 12px;
-    background: #fff;
+    background: var(--brand-mustard);
     border-radius: 50%;
     box-shadow: 0 2px 4px 0 rgba(0, 0, 0, .5);
-    transition: transform 0.1s ease;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 6;
+    transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .mary-player-mini__progress-track:hover .mary-player-mini__progress-fill,
 .mary-audio-player.is-dragging .mary-player-mini__progress-fill {
-    background: var(--qualquer-tecla-gold-hover, var(--qualquer-tecla-gold));
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--brand-mustard-hover) 88%, #000) 0%,
+        var(--brand-mustard) 48%,
+        color-mix(in srgb, var(--brand-mustard) 40%, #fff) 100%
+    );
 }
 
 .mary-player-mini__progress-track:hover::before,
+.mary-player-mini__progress-track.is-hovering::before,
 .mary-audio-player.is-dragging .mary-player-mini__progress-track::before,
 .mary-player-mini__progress-track:hover .mary-player-mini__progress-fill,
+.mary-player-mini__progress-track.is-hovering .mary-player-mini__progress-fill,
 .mary-audio-player.is-dragging .mary-player-mini__progress-fill {
     height: 8px;
-    border-radius: 1px;
 }
 
+/* Bolinha no playhead quando a barra se expande (hover / toque / arraste). */
 .mary-player-mini__progress-track:hover .mary-player-mini__progress-fill::after,
+.mary-player-mini__progress-track.is-hovering .mary-player-mini__progress-fill::after,
 .mary-audio-player.is-dragging .mary-player-mini__progress-fill::after {
     transform: translateY(-50%) scale(1);
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mary-player-mini__progress-fill::after {
+        transition: none;
+    }
 }
 
 /* Mini player — contraste no tema claro (só elementos hardcoded em branco) */
@@ -9065,12 +9152,18 @@ body.mary-is-expanded #mary-root {
 .mary-player-expanded__progress-fill {
     width: 0%;
     height: 4px;
-    background: var(--qualquer-tecla-gold);
+    /* Degradê mostarda → ouro claro até o playhead. */
+    background: linear-gradient(
+        90deg,
+        var(--brand-mustard-hover) 0%,
+        var(--brand-mustard) 52%,
+        color-mix(in srgb, var(--brand-mustard) 55%, #fff) 100%
+    );
     border-radius: 1px;
     position: relative;
     z-index: 1;
     pointer-events: none;
-    transition: width 0.1s linear, background-color 0.2s ease, height 0.2s ease, border-radius 0.2s ease;
+    transition: width 0.1s linear, background 0.2s ease, height 0.2s ease, border-radius 0.2s ease;
 }
 
 .mary-player-expanded__progress-track:hover::before,
@@ -9083,11 +9176,15 @@ body.mary-is-expanded #mary-root {
 
 .mary-player-expanded__progress-track:hover .mary-player-expanded__progress-fill,
 .mary-audio-player.is-dragging .mary-player-expanded__progress-fill {
-    background: var(--qualquer-tecla-gold-hover, var(--qualquer-tecla-gold));
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--brand-mustard-hover) 88%, #000) 0%,
+        var(--brand-mustard) 48%,
+        color-mix(in srgb, var(--brand-mustard) 40%, #fff) 100%
+    );
 }
 
 .mary-player-expanded__progress-fill::after {
-    display: none !important;
     content: '';
     position: absolute;
     right: -6px;
@@ -9095,15 +9192,25 @@ body.mary-is-expanded #mary-root {
     transform: translateY(-50%) scale(0);
     width: 12px;
     height: 12px;
-    background: #fff;
+    background: var(--brand-mustard);
     border-radius: 50%;
     box-shadow: 0 2px 4px 0 rgba(0, 0, 0, .5);
-    transition: transform 0.1s ease;
+    pointer-events: none;
+    opacity: 0;
+    transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
+/* Bolinha no playhead quando a barra se expande (hover / toque / arraste). */
 .mary-player-expanded__progress-track:hover .mary-player-expanded__progress-fill::after,
 .mary-audio-player.is-dragging .mary-player-expanded__progress-fill::after {
     transform: translateY(-50%) scale(1);
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mary-player-expanded__progress-fill::after {
+        transition: none;
+    }
 }
 
 .mary-player-expanded__time-row {
