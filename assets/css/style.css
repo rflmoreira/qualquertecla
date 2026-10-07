@@ -8141,7 +8141,7 @@ body.mary-is-expanded #mary-root {
     display: flex;
     align-items: flex-end;
     width: 100%;
-    /* Pass-through na safe-area; o mini reativa pointer-events abaixo. */
+    /* Pass-through na safe-area; o mini reativa pointer-events. */
     pointer-events: none;
 }
 
@@ -8166,11 +8166,7 @@ body.mary-is-expanded #mary-root {
     will-change: height;
 }
 
-/*
- * Mini: visual continua na safe-area, mas o hit-box interativo fica só no
- * .mary-player-mini (acima do home indicator). Assim o gesto de minimizar
- * (swipe na barra inferior) não disputa com seek/progresso.
- */
+/* Hit-box só no mini — safe-area abaixo não captura o gesto de home. */
 .mary-audio-player:not(.is-expanded) {
     pointer-events: none;
 }

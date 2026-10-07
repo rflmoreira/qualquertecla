@@ -2392,6 +2392,19 @@
                 let touchStartX = 0;
                 let touchStartY = 0;
 
+                /** Zona inferior do mini / viewport: libera o gesto de home (sem seek). */
+                const isInMiniHomeGestureZone = (clientY) => {
+                    if (!mp.el || mp.el.classList.contains('is-expanded')) return false;
+                    // ~home indicator + folga a partir da borda da tela
+                    if (window.innerHeight - clientY <= 44) return true;
+                    const mini = mp.el.querySelector('#mary-player-mini');
+                    if (!mini) return false;
+                    const rect = mini.getBoundingClientRect();
+                    const fromMiniBottom = rect.bottom - clientY;
+                    // Terço inferior do mini — seek por deslize continua no restante
+                    return fromMiniBottom >= 0 && fromMiniBottom <= Math.max(22, rect.height * 0.34);
+                };
+
                 mp.el.addEventListener('touchstart', (e) => {
                     if (e.touches.length !== 1) return;
 
@@ -2402,6 +2415,12 @@
 
                     touchStartX = e.touches[0].clientX;
                     touchStartY = e.touches[0].clientY;
+
+                    // Parte inferior do mini: não capturar — gesto de minimizar do SO.
+                    if (isInMiniHomeGestureZone(touchStartY)) {
+                        touchMode = 'ignore';
+                        return;
+                    }
 
                     if (mp.progressTrack.contains(e.target)) {
                         if (!mp.el.classList.contains('has-started')) {
@@ -2425,6 +2444,11 @@
 
                     if (touchMode === '') {
                         if (isAdAudioPlaying() || isAdBreakActive()) {
+                            touchMode = 'ignore';
+                            return;
+                        }
+                        // Se o dedo entrou na faixa inferior, solta o gesto para o SO.
+                        if (isInMiniHomeGestureZone(e.touches[0].clientY)) {
                             touchMode = 'ignore';
                             return;
                         }
