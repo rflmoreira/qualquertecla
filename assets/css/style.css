@@ -8772,7 +8772,8 @@ body.mary-is-expanded #mary-root {
     --mary-tip-text: #f3f3f3;
     position: absolute;
     left: 0;
-    z-index: 10050;
+    /* Acima do player expandido / #mary-root (99999). */
+    z-index: 100050;
     transform: translateX(-50%);
     padding: 0.12rem 0.4rem;
     border-radius: var(--radius-sm, 4px);
@@ -8798,12 +8799,12 @@ body.mary-is-expanded #mary-root {
     --mary-tip-text: var(--text-primary);
 }
 
-/* Tip flutuante no body (acima da borda da track / mini). */
+/* Tip flutuante no body (acima da borda da track / mini / expandido). */
 .mary-player-progress-hover-time.is-viewport-floating {
     position: fixed;
     top: 0;
     bottom: auto;
-    z-index: 10050;
+    z-index: 100050;
 }
 
 .mary-player-mini__progress-track::after {
@@ -9167,14 +9168,17 @@ body.mary-is-expanded #mary-root {
 }
 
 .mary-player-expanded__progress-track:hover::before,
+.mary-player-expanded__progress-track.is-hovering::before,
 .mary-audio-player.is-dragging .mary-player-expanded__progress-track::before,
 .mary-player-expanded__progress-track:hover .mary-player-expanded__progress-fill,
+.mary-player-expanded__progress-track.is-hovering .mary-player-expanded__progress-fill,
 .mary-audio-player.is-dragging .mary-player-expanded__progress-fill {
     height: 8px;
     border-radius: 1px;
 }
 
 .mary-player-expanded__progress-track:hover .mary-player-expanded__progress-fill,
+.mary-player-expanded__progress-track.is-hovering .mary-player-expanded__progress-fill,
 .mary-audio-player.is-dragging .mary-player-expanded__progress-fill {
     background: linear-gradient(
         90deg,
@@ -9202,6 +9206,7 @@ body.mary-is-expanded #mary-root {
 
 /* Bolinha no playhead quando a barra se expande (hover / toque / arraste). */
 .mary-player-expanded__progress-track:hover .mary-player-expanded__progress-fill::after,
+.mary-player-expanded__progress-track.is-hovering .mary-player-expanded__progress-fill::after,
 .mary-audio-player.is-dragging .mary-player-expanded__progress-fill::after {
     transform: translateY(-50%) scale(1);
     opacity: 1;
