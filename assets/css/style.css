@@ -8244,6 +8244,8 @@ body.mary-is-expanded #mary-root {
     pointer-events: auto;
     transition: opacity 0.3s ease;
     z-index: 2;
+    /* Permite swipe vertical (home); seek horizontal fica na trilha. */
+    touch-action: pan-y;
 }
 
 .mary-player-mini__bg-cover {
@@ -8684,9 +8686,9 @@ body.mary-is-expanded #mary-root {
 .mary-player-mini__progress-track::after {
     content: '';
     position: absolute;
-    /* Hit target só para baixo, dentro do mini — não invade a safe-area. */
+    /* Hit target curto no topo — não cobrir a metade inferior (gesto de home). */
     top: 0;
-    bottom: -18px;
+    height: 20px;
     left: 0;
     right: 0;
     background: transparent;
