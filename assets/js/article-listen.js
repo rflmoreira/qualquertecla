@@ -1211,7 +1211,8 @@
             adAudio.loop = false;
             MaryAudioTrace.log('pause-call', { el: adAudio, note: 'stopAdAudio' });
             adAudio.pause();
-            adAudio.currentTime = 0;
+            // Não resetar currentTime aqui: seek→0 após ended gera blip audível
+            // do início do wav. playAdAudio() já zera antes de tocar de novo.
         } catch (_) {
             /* ignore */
         }
@@ -1258,7 +1259,8 @@
 
     /**
      * Mantém o ad audível durante o handoff swap→próxima faixa (só BG).
-     * Não cria/inicia ad do zero — advance manual sem ad break gerava ~1s de anúncio.
+     * Só prolonga um ad que ainda está tocando — nunca reinicia do zero após ended
+     * (isso causava um trecho do início do anúncio ao avançar para a próxima faixa).
      */
     function ensureAdHandoffWarm() {
         if (!adAudio) return;
@@ -1267,17 +1269,20 @@
             return;
         }
         try {
-            if (!adAudio.paused && !adAudio.ended) {
-                adAudio.loop = true;
-            } else {
-                adAudio.loop = true;
-                try { adAudio.currentTime = 0; } catch (_) { /* ignore */ }
-                const playPromise = adAudio.play();
-                MaryAudioTrace.trackPlay(adAudio, playPromise, 'ensureAdHandoffWarm');
-                if (playPromise && typeof playPromise.catch === 'function') {
-                    playPromise.catch(() => { /* ignore */ });
-                }
+            // Ad já acabou ou está pausado: não dar play() / currentTime=0.
+            if (adAudio.paused || adAudio.ended) {
+                MaryAudioTrace.log('ensureAdHandoffWarm', {
+                    el: adAudio,
+                    note: 'skip-restart-ended-or-paused',
+                    extra: {
+                        paused: adAudio.paused,
+                        ended: adAudio.ended,
+                        currentTime: adAudio.currentTime
+                    }
+                });
+                return;
             }
+            adAudio.loop = true;
             MaryAudioTrace.log('ensureAdHandoffWarm', {
                 el: adAudio,
                 note: 'ad-loop-until-article-playing',
@@ -1717,14 +1722,19 @@
         }
         autoNextSession = null;
         bumpAutoNextGen();
-        // Ad wav ~8s acaba no mesmo instante do swap; sem loop a sessão BG esfria.
-        ensureAdHandoffWarm();
+        // Se o wav ainda toca (handoff cedo em BG), prolonga com loop.
+        // Se já ended: silenciar — não reaquecer do início.
+        if (adAudio && !adAudio.paused && !adAudio.ended) {
+            ensureAdHandoffWarm();
+        } else {
+            stopAdAudio();
+        }
         MaryAudioTrace.log('finishAdBreak', {
             note: 'finishAdBreak',
             extra: {
                 myGen: myGen,
                 nextSlug: art && art.slug ? art.slug : null,
-                keepAdPlaying: !!(adAudio && !adAudio.paused),
+                keepAdPlaying: !!(adAudio && !adAudio.paused && !adAudio.ended),
                 adLoop: !!(adAudio && adAudio.loop)
             }
         });
