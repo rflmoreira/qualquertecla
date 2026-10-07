@@ -8244,8 +8244,6 @@ body.mary-is-expanded #mary-root {
     pointer-events: auto;
     transition: opacity 0.3s ease;
     z-index: 2;
-    /* Permite swipe vertical (home); seek horizontal fica na trilha. */
-    touch-action: pan-y;
 }
 
 .mary-player-mini__bg-cover {

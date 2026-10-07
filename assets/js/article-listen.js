@@ -2395,15 +2395,17 @@
                 const isMiniCollapsed = () =>
                     Boolean(mp.el && !mp.el.classList.contains('is-expanded'));
 
-                /** Metade inferior do mini / ~64px da borda: libera gesto de home. */
+                /**
+                 * Só a faixa inferior do mini (não a tela inteira).
+                 * Evita o bug de "64px da borda" que engolia o seek horizontal no mini todo.
+                 */
                 const isInMiniHomeGestureZone = (clientY) => {
                     if (!isMiniCollapsed()) return false;
-                    if (window.innerHeight - clientY <= 64) return true;
                     const mini = mp.el.querySelector('#mary-player-mini');
                     if (!mini) return false;
                     const rect = mini.getBoundingClientRect();
                     const fromMiniBottom = rect.bottom - clientY;
-                    return fromMiniBottom >= 0 && fromMiniBottom <= Math.max(32, rect.height * 0.5);
+                    return fromMiniBottom >= 0 && fromMiniBottom <= Math.max(24, rect.height * 0.35);
                 };
 
                 const releaseSeekForSystemGesture = () => {
@@ -2426,7 +2428,7 @@
                     touchStartX = e.touches[0].clientX;
                     touchStartY = e.touches[0].clientY;
 
-                    // Parte inferior: não capturar — swipe vertical de home.
+                    // Faixa inferior: não capturar (gesto de home).
                     if (isInMiniHomeGestureZone(touchStartY)) {
                         touchMode = 'ignore';
                         return;
@@ -2441,7 +2443,6 @@
                             touchMode = 'ignore';
                             return;
                         }
-                        // Progresso no topo: OK. Não iniciar seek se o toque já está na zona inferior.
                         touchMode = 'seek';
                         isDraggingProgress = true;
                         updateSeek(e, false);
@@ -2456,8 +2457,14 @@
                     const dx = Math.abs(e.touches[0].clientX - touchStartX);
                     const dy = Math.abs(e.touches[0].clientY - touchStartY);
 
-                    // Mini + vertical dominante (ex.: baixo→cima): nunca preventDefault / seek.
-                    if (isMiniCollapsed() && dy > 7 && dy >= dx) {
+                    // Vertical na faixa inferior (home baixo→cima): solta sem preventDefault.
+                    // Não aborta seek horizontal no restante do mini.
+                    if (
+                        isMiniCollapsed() &&
+                        dy > 8 &&
+                        dy > dx &&
+                        (isInMiniHomeGestureZone(touchStartY) || isInMiniHomeGestureZone(e.touches[0].clientY))
+                    ) {
                         releaseSeekForSystemGesture();
                         return;
                     }
@@ -2482,11 +2489,6 @@
                     }
 
                     if (touchMode === 'seek') {
-                        // Em seek no mini, se o dedo desceu para a zona do home, solta.
-                        if (isMiniCollapsed() && isInMiniHomeGestureZone(e.touches[0].clientY)) {
-                            releaseSeekForSystemGesture();
-                            return;
-                        }
                         if (e.cancelable) e.preventDefault();
                         updateSeek(e, false);
                     }
