@@ -4621,7 +4621,10 @@ body.mary-is-expanded .mary-launcher-row {
     line-height: 1.4;
     text-align: center;
     color: var(--mary-panel-muted);
-    background: var(--mary-panel-messages-bg);
+    /* Mesmo vidro da área de mensagens (bg sozinho ficava sem desfoque). */
+    background-color: var(--mary-panel-messages-bg);
+    backdrop-filter: var(--mary-panel-messages-blur);
+    -webkit-backdrop-filter: var(--mary-panel-messages-blur);
 }
 
 .mary-panel__credits a {
@@ -8642,8 +8645,7 @@ body.mary-is-expanded #mary-root {
     z-index: 2;
 }
 
-.mary-audio-player.is-dragging .mary-player-mini__time-display,
-.mary-audio-player.is-ad-break .mary-player-mini__time-display {
+.mary-audio-player.is-dragging .mary-player-mini__time-display {
     opacity: 1 !important;
 }
 
@@ -8657,8 +8659,7 @@ body.mary-is-expanded #mary-root {
     z-index: 3;
 }
 
-.mary-audio-player.is-dragging .mary-player-mini__info,
-.mary-audio-player.is-ad-break .mary-player-mini__info {
+.mary-audio-player.is-dragging .mary-player-mini__info {
     filter: blur(4px);
     opacity: 0.3;
     transform: scale(0.98);
