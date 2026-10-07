@@ -123,10 +123,7 @@
         wrap.id = ROOT_ID;
         wrap.className = 'qt-pwa-install';
         wrap.setAttribute('role', 'region');
-        wrap.setAttribute(
-            'aria-label',
-            variant === 'ios' ? 'Adicionar à Tela de Início' : 'Instalar aplicativo'
-        );
+        wrap.setAttribute('aria-label', 'Instalar aplicativo');
         wrap.dataset.variant = variant;
 
         const inner = document.createElement('div');
@@ -149,10 +146,10 @@
 
         const copy = document.createElement('p');
         copy.className = 'qt-pwa-install__copy';
-        copy.textContent =
-            variant === 'ios'
-                ? 'Safari → Tela de Início'
-                : 'Instale o Qualquer Tecla';
+        copy.id = 'qt-pwa-install-copy';
+        copy.tabIndex = -1;
+        // Mesmo texto em todos os casos — sem instrução específica de navegador.
+        copy.textContent = 'Instale o Qualquer Tecla';
 
         copyWrap.appendChild(copy);
         message.appendChild(icon);
@@ -161,14 +158,32 @@
         const actions = document.createElement('div');
         actions.className = 'qt-pwa-install__actions';
 
+        const narrow =
+            typeof global.matchMedia === 'function' &&
+            global.matchMedia('(max-width: 575.98px)').matches;
+
+        // Sempre mostra o CTA dourado. Chromium: prompt nativo. iOS: destaca o passo a passo.
+        // Em mobile o rótulo curto evita cortar "Instale o Qualquer Tecla".
+        const installBtn = document.createElement('button');
+        installBtn.type = 'button';
+        installBtn.className = 'btn btn-gold qt-pwa-install__install';
+        installBtn.textContent = narrow ? 'Instalar' : 'Instalar app';
         if (variant === 'chromium') {
-            const installBtn = document.createElement('button');
-            installBtn.type = 'button';
-            installBtn.className = 'btn btn-gold qt-pwa-install__install';
-            installBtn.textContent = 'Instalar app';
             installBtn.addEventListener('click', onInstallClick);
-            actions.appendChild(installBtn);
+        } else {
+            installBtn.setAttribute('aria-describedby', 'qt-pwa-install-copy');
+            installBtn.addEventListener('click', function () {
+                copy.classList.remove('is-hint');
+                void copy.offsetWidth;
+                copy.classList.add('is-hint');
+                try {
+                    copy.focus({ preventScroll: true });
+                } catch (_) {
+                    /* ignore */
+                }
+            });
         }
+        actions.appendChild(installBtn);
 
         const dismissBtn = document.createElement('button');
         dismissBtn.type = 'button';

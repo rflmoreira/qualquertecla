@@ -7800,12 +7800,39 @@ a[data-bs-target] {
     letter-spacing: 0.03em;
     color: color-mix(in srgb, var(--text-primary) 82%, var(--text-secondary));
     white-space: nowrap;
-    overflow: visible;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    outline: none;
+}
+
+.qt-pwa-install__copy.is-hint {
+    color: var(--text-primary);
+    animation: qt-pwa-copy-hint 1.1s ease;
+}
+
+@keyframes qt-pwa-copy-hint {
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    35%,
+    65% {
+        opacity: 0.45;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .qt-pwa-install__copy.is-hint {
+        animation: none;
+        color: var(--qualquer-tecla-gold);
+    }
 }
 
 .qt-pwa-install__actions {
     display: flex;
     flex: 0 0 auto;
+    flex-shrink: 0;
     flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-end;
@@ -7814,6 +7841,11 @@ a[data-bs-target] {
 
 /* Primário compacto = .btn-gold; secundário = ghost textual (como Preferências no consent). */
 .qt-pwa-install__install.btn-gold {
+    display: inline-flex;
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
     padding: 0.3rem 0.7rem;
     font-family: var(--font-ui);
     font-weight: var(--font-weight-semibold);
@@ -7823,6 +7855,8 @@ a[data-bs-target] {
     line-height: 1.15;
     white-space: nowrap;
     border-radius: var(--radius-sm);
+    visibility: visible;
+    opacity: 1;
 }
 
 .qt-pwa-install__dismiss {
@@ -7857,17 +7891,44 @@ a[data-bs-target] {
 
 @media (max-width: 575.98px) {
     .qt-pwa-install__inner {
-        gap: 0.4rem 0.5rem;
+        gap: 0.3rem 0.4rem;
         padding-top: 0.3rem;
         padding-bottom: 0.3rem;
     }
 
+    .qt-pwa-install__message {
+        gap: 0.35rem;
+    }
+
+    .qt-pwa-install__icon {
+        display: block;
+        width: 1rem;
+        height: 1rem;
+    }
+
     .qt-pwa-install__copy {
-        letter-spacing: 0.025em;
+        letter-spacing: 0;
+        font-size: 0.65rem;
+    }
+
+    .qt-pwa-install__actions {
+        gap: 0.2rem 0.35rem;
+        flex-shrink: 0;
     }
 
     .qt-pwa-install__install.btn-gold {
-        padding: 0.28rem 0.55rem;
+        display: inline-flex !important;
+        padding: 0.26rem 0.4rem;
+        font-size: 0.62rem;
+        letter-spacing: 0.03em;
+    }
+
+    .qt-pwa-install__dismiss {
+        display: inline-block;
+        flex-shrink: 0;
+        padding: 0.26rem 0.05rem;
+        font-size: 0.62rem;
+        letter-spacing: 0.03em;
     }
 }
 
@@ -8562,7 +8623,8 @@ body.mary-is-expanded #mary-root {
     z-index: 2;
 }
 
-.mary-audio-player.is-dragging .mary-player-mini__time-display {
+.mary-audio-player.is-dragging .mary-player-mini__time-display,
+.mary-audio-player.is-ad-break .mary-player-mini__time-display {
     opacity: 1 !important;
 }
 
@@ -8576,7 +8638,8 @@ body.mary-is-expanded #mary-root {
     z-index: 3;
 }
 
-.mary-audio-player.is-dragging .mary-player-mini__info {
+.mary-audio-player.is-dragging .mary-player-mini__info,
+.mary-audio-player.is-ad-break .mary-player-mini__info {
     filter: blur(4px);
     opacity: 0.3;
     transform: scale(0.98);

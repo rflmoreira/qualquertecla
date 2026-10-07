@@ -1298,14 +1298,15 @@
         }
     }
 
-    function setMediaSessionAdBreak(remainingSec) {
+    function setMediaSessionAdBreak(/* remainingSec */) {
         if (!('mediaSession' in navigator)) return;
-        const timeStr = formatAdCountdown(remainingSec);
         const artSrc = resolveAbsoluteUrl(AD_BREAK_ARTWORK);
         try {
+            // Tempo do anúncio NÃO vai em artist (parece "author" no Now Playing).
+            // Progresso fica só em time-current / time-remaining no player.
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: 'Anúncio',
-                artist: timeStr + ' · Qualquer Tecla',
+                artist: 'Qualquer Tecla',
                 album: 'Qualquer Tecla',
                 artwork: [{ src: artSrc, sizes: '1024x1024', type: 'image/jpeg' }]
             });
@@ -1415,6 +1416,7 @@
         if (mp.author) mp.author.textContent = backup.author;
         if (mp.timeCurrent) mp.timeCurrent.textContent = backup.timeCurrent;
         if (mp.timeRemaining) mp.timeRemaining.textContent = backup.timeRemaining;
+        refreshMaryTitleMarquees();
     }
 
     function updateAdBreakCountdown(remainingSec) {
@@ -1428,6 +1430,8 @@
             const adCover = resolveAbsoluteUrl(AD_BREAK_ARTWORK);
             if (mp.cover) mp.cover.src = adCover;
             if (mp.ambientBg) mp.ambientBg.style.backgroundImage = `url(${adCover})`;
+            // Título curto: reavaliar marquee (não herdar animação da matéria anterior).
+            refreshMaryTitleMarquees();
         }
         setMediaSessionAdBreak(remainingSec);
         updateAdBreakProgressUi();
@@ -1928,6 +1932,48 @@
         });
     }
 
+    /**
+     * Marquee só se o título realmente transborda o container.
+     * Textos curtos (ex.: "Anúncio") ficam estáticos.
+     */
+    function syncTitleMarquee(tEl) {
+        if (!tEl) return;
+        const parent = tEl.parentElement;
+        if (!parent) return;
+
+        tEl.classList.remove('is-marquee');
+        parent.classList.remove('has-marquee');
+        tEl.style.removeProperty('--marquee-dist');
+        // Força layout sem animação antes de medir.
+        void tEl.offsetWidth;
+
+        const scrollW = tEl.scrollWidth;
+        const clientW = tEl.clientWidth;
+        const overflow = scrollW - clientW;
+        // Folga anti-jitter: só anima se passar de ~8px.
+        if (!(clientW > 0 && overflow > 8)) return;
+
+        tEl.classList.add('is-marquee');
+        parent.classList.add('has-marquee');
+        tEl.style.setProperty('--marquee-dist', '-' + (overflow + 24) + 'px');
+    }
+
+    function refreshMaryTitleMarquees() {
+        const mp = window.Mary && window.Mary.active && window.Mary.active.player;
+        if (!mp) return;
+        const titles = [];
+        if (mp.miniEl) titles.push(mp.miniEl.querySelector('#mary-player-title-mini'));
+        if (mp.expandedEl) titles.push(mp.expandedEl.querySelector('#mary-player-title-expanded'));
+        titles.forEach((tEl) => {
+            if (!tEl) return;
+            if (tEl.__maryMarqueeFrame) cancelAnimationFrame(tEl.__maryMarqueeFrame);
+            tEl.__maryMarqueeFrame = requestAnimationFrame(() => {
+                tEl.__maryMarqueeFrame = 0;
+                syncTitleMarquee(tEl);
+            });
+        });
+    }
+
     function ensureMarqueeObserver() {
         if (marqueeObserver || typeof ResizeObserver !== 'function') return marqueeObserver;
         marqueeObserver = new ResizeObserver((entries) => {
@@ -1935,36 +1981,10 @@
                 const parent = entry.target;
                 const tEl = parent.querySelector('.mary-player-mini__title, .mary-player-expanded__title');
                 if (!tEl) return;
-                if (tEl.__maryMarqueeFrame) return;
-
+                if (tEl.__maryMarqueeFrame) cancelAnimationFrame(tEl.__maryMarqueeFrame);
                 tEl.__maryMarqueeFrame = requestAnimationFrame(() => {
                     tEl.__maryMarqueeFrame = 0;
-
-                    const hadMarquee = tEl.classList.contains('is-marquee');
-                    if (hadMarquee) {
-                        tEl.classList.remove('is-marquee');
-                        parent.classList.remove('has-marquee');
-                    }
-
-                    const scrollW = tEl.scrollWidth;
-                    const clientW = tEl.clientWidth;
-                    const shouldMarquee = scrollW > clientW && clientW > 0;
-
-                    if (shouldMarquee === hadMarquee) {
-                        if (hadMarquee) {
-                            tEl.classList.add('is-marquee');
-                            parent.classList.add('has-marquee');
-                        }
-                        return;
-                    }
-
-                    if (shouldMarquee) {
-                        tEl.classList.add('is-marquee');
-                        parent.classList.add('has-marquee');
-                        tEl.style.setProperty('--marquee-dist', '-' + (scrollW - clientW + 32) + 'px');
-                    } else {
-                        tEl.style.removeProperty('--marquee-dist');
-                    }
+                    syncTitleMarquee(tEl);
                 });
             });
         });
@@ -1987,6 +2007,7 @@
                 observer.observe(titleEl.parentElement);
             }
         });
+        refreshMaryTitleMarquees();
     }
 
     function ensureOutsideClickListener() {
