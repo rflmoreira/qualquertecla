@@ -8141,7 +8141,8 @@ body.mary-is-expanded #mary-root {
     display: flex;
     align-items: flex-end;
     width: 100%;
-    pointer-events: auto;
+    /* Pass-through na safe-area; o mini reativa pointer-events abaixo. */
+    pointer-events: none;
 }
 
 .mary-audio-player {
@@ -8163,6 +8164,19 @@ body.mary-is-expanded #mary-root {
     pointer-events: auto;
     transition: height 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), border-radius 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
     will-change: height;
+}
+
+/*
+ * Mini: visual continua na safe-area, mas o hit-box interativo fica só no
+ * .mary-player-mini (acima do home indicator). Assim o gesto de minimizar
+ * (swipe na barra inferior) não disputa com seek/progresso.
+ */
+.mary-audio-player:not(.is-expanded) {
+    pointer-events: none;
+}
+
+.mary-audio-player:not(.is-expanded) .mary-player-mini {
+    pointer-events: auto;
 }
 
 /* Sem arquivo de áudio: controles de reprodução inativos (não confundir com loading). */
@@ -8214,6 +8228,7 @@ body.mary-is-expanded #mary-root {
     align-items: center !important;
     border-radius: 0 !important;
     z-index: 99999 !important;
+    pointer-events: auto;
 }
 
 
@@ -8673,8 +8688,9 @@ body.mary-is-expanded #mary-root {
 .mary-player-mini__progress-track::after {
     content: '';
     position: absolute;
-    top: -10px;
-    bottom: -30px;
+    /* Hit target só para baixo, dentro do mini — não invade a safe-area. */
+    top: 0;
+    bottom: -18px;
     left: 0;
     right: 0;
     background: transparent;
