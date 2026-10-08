@@ -560,9 +560,9 @@
                 'A 11ª edição brasileira do Rock in Rio ocorre de 4 a 13 de setembro de 2026 na Cidade do Rock, no Parque Olímpico (Barra da Tijuca), com mais de 190 shows. Headliners do Palco Mundo incluem Foo Fighters, Avenged Sevenfold, Calvin Harris, Elton John, Stray Kids, Maroon 5 e Twenty One Pilots; os dias 6 e 12 já estão esgotados. O guia cobre programação, BRT especial, metrô, ônibus executivos, itens permitidos e cobertura na Globo, Multishow e Globoplay.',
             audio_summary_url: 'assets/audio/articles/rock-in-rio-2026-guia-completo/summary.wav',
             audio_full_url: 'assets/audio/articles/rock-in-rio-2026-guia-completo/full.wav',
-            audio_summary_hash: '87ae3c1b14f2f373fa5240d911dd5c21ffc0cfbfef032ce7277fe0a19deacab4',
-            audio_full_hash: '12976efedb051880fdc41114f911b17c9a0d7061d795c2d749123bc8bf5aaccc',
-            audio_generated_at: '2026-09-18T02:42:07.936Z',
+            audio_summary_hash: 'dd47a501d47c3c978aa2348c4dbf871683d5ffbc352ca7ddf204b56081667e1b',
+            audio_full_hash: 'a8ea4b4e59147dd5f4df7660da71d6b046414e8c097b44e426a87152439e3e98',
+            audio_generated_at: '2026-10-08T13:36:50.003Z',
             audio_status: 'ready',
             views: 1280,
             tags: [
