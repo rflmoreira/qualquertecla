@@ -33,6 +33,7 @@ function assertNetlifySecurityHeaders() {
         /font-src[^;"]*https:\/\/cdn\.jsdelivr\.net/,
         'CSP font-src deve liberar o CDN da fonte de icones'
     );
+    assert.match(toml, /font-src[^;"]*'self'/, "CSP font-src deve permitir 'self' (webfonts locais)");
     assert.match(toml, /Strict-Transport-Security/);
     assert.match(toml, /Cache-Control\s*=\s*"public, max-age=31536000, immutable"/);
     assert.match(toml, /\[functions\."categoria-seo"\]/);
@@ -41,6 +42,44 @@ function assertNetlifySecurityHeaders() {
         /media-src[^;"]*'self'/,
         'CSP media-src deve permitir o vídeo da orbe do resumo por IA'
     );
+}
+
+const SELF_HOSTED_FONTS = [
+    'noticia-text-400.woff2',
+    'noticia-text-700.woff2',
+    'noticia-text-400-italic.woff2',
+    'noticia-text-700-italic.woff2',
+    'bricolage-grotesque-700.woff2',
+    'genos-700.woff2'
+];
+
+function assertSelfHostedFonts() {
+    const fontsDir = path.join(ROOT, 'assets/fonts');
+    for (const file of SELF_HOSTED_FONTS) {
+        const full = path.join(fontsDir, file);
+        assert.ok(fs.existsSync(full), `fonte ausente: assets/fonts/${file}`);
+        assert.ok(fs.statSync(full).size > 1000, `fonte vazia/suspeita: ${file}`);
+    }
+
+    const css = fs.readFileSync(path.join(ROOT, 'assets/css/style.css'), 'utf8');
+    assert.match(css, /@font-face\s*\{[^}]*font-family:\s*'Noticia Text'/s);
+    assert.match(css, /font-display:\s*swap/);
+    assert.match(css, /url\('\.\.\/fonts\/noticia-text-400\.woff2'\)/);
+    assert.match(css, /url\('\.\.\/fonts\/bricolage-grotesque-700\.woff2'\)/);
+    assert.match(css, /url\('\.\.\/fonts\/genos-700\.woff2'\)/);
+
+    const index = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    assert.doesNotMatch(index, /fonts\.googleapis\.com|fonts\.gstatic\.com/);
+    assert.match(index, /assets\/fonts\/noticia-text-400\.woff2/);
+    assert.match(index, /style\.css\?v=20261008selfHostFonts1/);
+
+    const noticia = fs.readFileSync(path.join(ROOT, 'noticia.html'), 'utf8');
+    assert.doesNotMatch(noticia, /fonts\.googleapis\.com|fonts\.gstatic\.com/);
+    assert.match(noticia, /assets\/fonts\/genos-700\.woff2/);
+
+    const admin = fs.readFileSync(path.join(ROOT, 'admin/index.html'), 'utf8');
+    assert.doesNotMatch(admin, /fonts\.googleapis\.com|fonts\.gstatic\.com/);
+    assert.match(admin, /\.\.\/assets\/fonts\/noticia-text-400\.woff2/);
 }
 
 function assertSitemapCoversPublished() {
@@ -175,6 +214,9 @@ async function assertHttpSmoke() {
 async function main() {
     console.log('[test] netlify security headers + CSP…');
     assertNetlifySecurityHeaders();
+
+    console.log('[test] self-hosted webfonts…');
+    assertSelfHostedFonts();
 
     console.log('[test] sitemap covers published…');
     assertSitemapCoversPublished();

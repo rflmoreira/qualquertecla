@@ -4,6 +4,67 @@ html:not(.ph-icons-ready) .ph-fill:before {
     visibility: hidden;
 }
 
+/*
+ * Self-hosted webfonts (latin) — same-origin em local e produção.
+ * Evita display:optional + latência do Google Fonts (fallback permanente em cold load).
+ */
+@font-face {
+    font-family: 'Noticia Text';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/noticia-text-400.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Noticia Text';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../fonts/noticia-text-700.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Noticia Text';
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/noticia-text-400-italic.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Noticia Text';
+    font-style: italic;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../fonts/noticia-text-700-italic.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Bricolage Grotesque';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../fonts/bricolage-grotesque-700.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Bricolage Grotesque';
+    font-style: normal;
+    font-weight: 800;
+    font-display: swap;
+    src: url('../fonts/bricolage-grotesque-700.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Genos';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../fonts/genos-700.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Genos';
+    font-style: normal;
+    font-weight: 800;
+    font-display: swap;
+    src: url('../fonts/genos-700.woff2') format('woff2');
+}
+
 :root {
     /* Brand Colors — dourado/laranja mostarda é a identidade (não amarelo / metálico / olive) */
     --qualquer-tecla-black: #0c0c0c;
