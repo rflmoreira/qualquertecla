@@ -1,10 +1,20 @@
 /**
  * Monta o roteiro de narração e hash do texto a sintetizar.
+ * Hash v2 inclui voz/modelo/estilo/sampleRate (identidade de áudio).
  */
 import { createHash } from 'node:crypto';
 
 const MAX_FULL_CHARS = 48_000;
 const MAX_SUMMARY_CHARS = 8_000;
+
+/**
+ * Defaults com os quais WAVs legados (hash só-texto) foram gerados recentemente.
+ * Usado apenas para reutilizar acervo existente sem regenerar em massa.
+ */
+export const LEGACY_AUDIO_DEFAULTS = {
+    voice: 'Leda',
+    model: 'gemini-3.8-flash-tts'
+};
 
 export function stripToPlainText(raw) {
     let text = String(raw || '');
@@ -43,18 +53,60 @@ export function hashScript(text) {
     return createHash('sha256').update(String(text || ''), 'utf8').digest('hex');
 }
 
-export function buildSummaryScript(summary) {
+/**
+ * Identidade de áudio v2: texto + config que altera o WAV.
+ * @param {'summary'|'full'} kind
+ * @param {string} text
+ * @param {{ voice?: string, model?: string, style?: string, sampleRate?: number }} [config]
+ */
+export function hashAudioIdentity(kind, text, config = {}) {
+    const voice = String(config.voice || '').trim();
+    const model = String(config.model || '').trim();
+    const style = String(config.style || '').trim();
+    const sampleRate = Number(config.sampleRate) > 0 ? Number(config.sampleRate) : 0;
+    return hashScript(
+        `v2|${kind}|${model}|${voice}|${sampleRate}|${style}|${String(text || '')}`
+    );
+}
+
+/**
+ * Hash legado (só texto) — compatível com acervo já gerado.
+ * @param {'summary'|'full'} kind
+ * @param {string} text
+ */
+export function hashLegacyAudioIdentity(kind, text) {
+    return hashScript(`${kind}|${String(text || '')}`);
+}
+
+/**
+ * Reuso de hash legado só é seguro se voz/modelo atuais batem com o default legado.
+ * @param {{ voice?: string, model?: string }} [config]
+ */
+export function isLegacyHashCompatible(config = {}) {
+    return (
+        String(config.voice || '').trim() === LEGACY_AUDIO_DEFAULTS.voice &&
+        String(config.model || '').trim() === LEGACY_AUDIO_DEFAULTS.model
+    );
+}
+
+/**
+ * @param {string} summary
+ * @param {{ voice?: string, model?: string, style?: string, sampleRate?: number }} [config]
+ */
+export function buildSummaryScript(summary, config = {}) {
     const text = stripToPlainText(summary).slice(0, MAX_SUMMARY_CHARS);
     return {
         text,
-        hash: hashScript(`summary|${text}`)
+        hash: hashAudioIdentity('summary', text, config),
+        legacyHash: hashLegacyAudioIdentity('summary', text)
     };
 }
 
 /**
  * @param {{ title?: string, subtitle?: string, content?: string|array }} article
+ * @param {{ voice?: string, model?: string, style?: string, sampleRate?: number }} [config]
  */
-export function buildFullScript(article = {}) {
+export function buildFullScript(article = {}, config = {}) {
     const title = stripToPlainText(article.title || '');
     const subtitle = stripToPlainText(article.subtitle || '');
     const body = stripToPlainText(article.content || '');
@@ -65,7 +117,8 @@ export function buildFullScript(article = {}) {
     const text = parts.join('\n\n').slice(0, MAX_FULL_CHARS);
     return {
         text,
-        hash: hashScript(`full|${text}`)
+        hash: hashAudioIdentity('full', text, config),
+        legacyHash: hashLegacyAudioIdentity('full', text)
     };
 }
 

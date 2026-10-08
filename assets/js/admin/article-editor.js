@@ -3013,45 +3013,82 @@
                 if (els.aiSummaryInput) els.aiSummaryInput.value = summary;
             }
 
-            // Servidor reutiliza WAV se o hash do resumo não mudou (sem novo gasto TTS).
+            // Alinhado ao publish: falha do resumo não impede tentar o full
+            // (Ouvir usa full; ready só com ambos). Servidor reutiliza por identidade.
             btn.innerHTML =
                 '<i class="ph ph-spinner" aria-hidden="true"></i><span>Áudio resumo…</span>';
             setArticleAudioStatus('Mary AI gerando áudio do resumo…', 'loading');
-            summaryAudio = await fetchArticleAudioGenerate({
-                slug,
-                kind: 'summary',
-                text: summary
-            });
+            try {
+                summaryAudio = await fetchArticleAudioGenerate({
+                    slug,
+                    kind: 'summary',
+                    text: summary
+                });
+            } catch (err) {
+                console.warn('[audio] áudio do resumo opcional falhou:', err);
+            }
 
             btn.innerHTML =
                 '<i class="ph ph-spinner" aria-hidden="true"></i><span>Áudio matéria…</span>';
             setArticleAudioStatus('Mary AI gerando áudio da matéria…', 'loading');
-            fullAudio = await fetchArticleAudioGenerate({
-                slug,
-                kind: 'full',
-                title,
-                subtitle,
-                content
-            });
+            try {
+                fullAudio = await fetchArticleAudioGenerate({
+                    slug,
+                    kind: 'full',
+                    title,
+                    subtitle,
+                    content
+                });
+            } catch (err) {
+                console.warn('[audio] áudio da matéria opcional falhou:', err);
+            }
 
-            const audioFields = {
-                audio_summary_url: summaryAudio.url,
-                audio_full_url: fullAudio.url,
-                audio_summary_hash: summaryAudio.hash,
-                audio_full_hash: fullAudio.hash,
-                audio_generated_at:
-                    fullAudio.generated_at || new Date().toISOString(),
-                audio_status: 'ready'
-            };
+            const audioReady = Boolean(
+                summaryAudio &&
+                    summaryAudio.url &&
+                    summaryAudio.hash &&
+                    fullAudio &&
+                    fullAudio.url &&
+                    fullAudio.hash
+            );
+
+            const audioFields = audioReady
+                ? {
+                      audio_summary_url: summaryAudio.url,
+                      audio_full_url: fullAudio.url,
+                      audio_summary_hash: summaryAudio.hash,
+                      audio_full_hash: fullAudio.hash,
+                      audio_generated_at:
+                          fullAudio.generated_at || new Date().toISOString(),
+                      audio_status: 'ready'
+                  }
+                : {
+                      audio_summary_url: (summaryAudio && summaryAudio.url) || null,
+                      audio_full_url: (fullAudio && fullAudio.url) || null,
+                      audio_summary_hash: (summaryAudio && summaryAudio.hash) || null,
+                      audio_full_hash: (fullAudio && fullAudio.hash) || null,
+                      audio_generated_at: null,
+                      audio_status: 'missing'
+                  };
 
             const saved = await persistAudioFields(slug, audioFields);
             if (saved) pendingAudioFields = null;
 
             refreshArticleAudioStatus(audioFields);
-            showFeedback('success', 'Áudios gerados com Mary AI.');
+            if (audioReady) {
+                showFeedback('success', 'Áudios gerados com Mary AI.');
+            } else if (summaryAudio || fullAudio) {
+                setArticleAudioStatus(
+                    'Áudio parcial gerado. Tente novamente para completar.',
+                    'error'
+                );
+            } else {
+                setArticleAudioStatus(
+                    'Mary AI não conseguiu gerar os áudios agora.',
+                    'error'
+                );
+            }
         } catch (err) {
-            // Preserva estágio que já saiu (ex.: resumo ok, full falhou).
-            // Próxima tentativa reutiliza WAV do resumo via hash no servidor.
             if (summaryAudio || fullAudio) {
                 const partialFields = {
                     audio_summary_url: (summaryAudio && summaryAudio.url) || null,

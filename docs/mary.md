@@ -33,5 +33,5 @@ caret `.mary-caret-blink`, cancelamento por token, e texto completo sob
 
 ## Áudio
 
-A geração de áudio (Gemini Leda) é **tentada** na publicação no Admin; se falhar, a matéria publica com `audio_status: 'missing'` e o Ouvir fica desabilitado.
+A geração de áudio (Gemini Leda / `gemini-3.8-flash-tts`, PT-BR) é **tentada** na publicação no Admin; se falhar, a matéria publica com `audio_status: 'missing'` e o Ouvir fica desabilitado.
 Detalhes: [article-audio.md](./article-audio.md).

@@ -3,8 +3,8 @@
 Na publicação e no botão **Gerar áudios** do Admin, o portal **tenta** em sequência:
 
 1. Resumo por IA (`POST /api/ai-summary`, Groq) — opcional; se falhar, mantém o texto do campo
-2. Áudio do resumo (Gemini TTS, voz **Leda**) — opcional
-3. Áudio da leitura completa (Gemini TTS, voz **Leda**) — opcional
+2. Áudio do resumo (Gemini TTS, voz **Leda**, PT-BR) — opcional
+3. Áudio da leitura completa (Gemini TTS, voz **Leda**, PT-BR) — opcional
 
 A matéria **publica mesmo se o áudio falhar**. Nesse caso `audio_status` fica `missing` e o botão **Ouvir** / a oferta de áudio na Mary ficam **desabilitados** (sem fallback de TTS no navegador).
 
@@ -15,7 +15,7 @@ Rascunho, edição e visualização **não** disparam geração de áudio.
 
 | Variável | Uso |
 |---|---|
-| `GEMINI_API_KEY` | Chave única (retrocompatível) — síntese TTS, modelo `gemini-3.1-flash-tts-preview`, voz Leda |
+| `GEMINI_API_KEY` | Chave única (retrocompatível) — síntese TTS, modelo `gemini-3.8-flash-tts`, voz Leda |
 | `GEMINI_API_KEY_1` … `GEMINI_API_KEY_6` | Múltiplas chaves com rotação automática (prioritário sobre `GEMINI_API_KEY`) |
 | `GEMINI_API_KEYS` | Alternativa CSV: `"key1,key2,key3"` (prioritário sobre `GEMINI_API_KEY`, usado se `_1…_6` não estiverem definidas) |
 | `GROQ_API_KEY` | Resumo por IA na publicação |
@@ -52,8 +52,11 @@ A Mary usa `audio_summary_url` no chip Ouvir do resumo; sem URL válida, informa
 
 ## Idempotência e rotação
 
-- `POST /api/article-audio/generate` reutiliza o WAV se o **hash do texto** já existir e o arquivo estiver íntegro (não chama Gemini de novo).
-- Gerações do mesmo `slug` são serializadas no processo (evita cliques duplos / publish + gerar em paralelo no mesmo isolate).
+- `POST /api/article-audio/generate` reutiliza o WAV se a **identidade de áudio** (texto + voz + modelo + estilo + sample rate) já existir e o arquivo estiver íntegro (não chama Gemini de novo).
+- Hash legado (só texto) ainda é aceito para reuso quando a config atual é Leda + `gemini-3.8-flash-tts` (não invalida o acervo de uma vez). Trocar voz ou modelo gera hash novo e força nova síntese.
+- Gerações do mesmo `slug` são serializadas **no mesmo isolate** (`withArticleAudioSlugLock`).
+- Entre isolates Netlify: lease atômico via Blobs `onlyIfNew` (local: `open wx`) no par `slug+kind+hash`; se o lease estiver ocupado, a request espera o WAV ou responde 409 — **não** há lock distribuído global além disso.
+- Rate-limit transitório (`ALL_COOLING`) é distinto de cota diária (`QUOTA`).
 - Chaves Gemini: ver `.env.example` (`GEMINI_API_KEY_1`…`6`). Logs usam só `key-N`.
 
 ## Exemplos do MockData
@@ -77,6 +80,6 @@ node scripts/generate-example-audio.mjs --all
 - Reaproveita WAV já existentes em `assets/audio/articles/<slug>/`
 - Em `FALHA: QUOTA` (HTTP 429), a execução **para** nessa notícia; aguarde o reset e rode de novo
 - Free tier do Gemini TTS: cota típica de **~10 requisições/dia por modelo** (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`). Cada pedaço de texto (~1400 chars) = 1 requisição — não é limite de caracteres do artigo
-- Modelo alinhado ao projeto `~/Leda`: `gemini-3.1-flash-tts-preview`, voz Leda
+- Modelo TTS: `gemini-3.8-flash-tts`, voz Leda; tom em `speech_metadata.style` (`engaging, natural, lively, articulate editorial tone`)
 - Prioriza matérias que já têm `summary.wav` e faltam `full.wav`
 

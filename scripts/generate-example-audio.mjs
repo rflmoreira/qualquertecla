@@ -16,7 +16,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadMockData, clearMockDataCache } from './seo/load-mock-data.mjs';
 import { buildFullScript, buildSummaryScript } from './article-audio/script-builder.mjs';
-import { isGeminiTtsConfigured, synthesizeToWav } from './article-audio/gemini-tts.mjs';
+import {
+    getAudioGenerationConfig,
+    isGeminiTtsConfigured,
+    synthesizeToWav
+} from './article-audio/gemini-tts.mjs';
 import { putArticleAudio } from './article-audio/storage.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -159,7 +163,10 @@ function isArticleComplete(slug) {
  */
 async function phase1Summary(article) {
     const slug = article.slug;
-    const summaryScript = buildSummaryScript(article.ai_summary || '');
+    const summaryScript = buildSummaryScript(
+        article.ai_summary || '',
+        getAudioGenerationConfig()
+    );
     if (!summaryScript.text || summaryScript.text.length < 8) {
         throw new Error('ai_summary insuficiente');
     }
@@ -170,7 +177,7 @@ async function phase1Summary(article) {
     if (summaryWav) {
         console.info(`[fase1] ${slug} — summary.wav já existe (${summaryWav.length} B), confirmado`);
     } else {
-        console.info(`[fase1] ${slug} — sintetizando resumo com Leda…`);
+        console.info(`[fase1] ${slug} — sintetizando resumo com Leda (PT-BR)…`);
         summaryWav = await synthesizeToWav(summaryScript.text);
         await writeAsset(slug, 'summary', summaryWav);
         console.info(`[fase1] ${slug} — summary.wav gravado (${summaryWav.length} B)`);
@@ -195,11 +202,14 @@ async function phase1Summary(article) {
  */
 async function phase2Full(article) {
     const slug = article.slug;
-    const fullScript = buildFullScript({
-        title: article.title,
-        subtitle: article.subtitle,
-        content: article.content
-    });
+    const fullScript = buildFullScript(
+        {
+            title: article.title,
+            subtitle: article.subtitle,
+            content: article.content
+        },
+        getAudioGenerationConfig()
+    );
     if (!fullScript.text || fullScript.text.length < 8) {
         throw new Error('conteúdo insuficiente para full');
     }
@@ -210,7 +220,7 @@ async function phase2Full(article) {
     if (fullWav) {
         console.info(`[fase2] ${slug} — full.wav já existe (${fullWav.length} B), confirmado`);
     } else {
-        console.info(`[fase2] ${slug} — sintetizando texto da notícia com Leda…`);
+        console.info(`[fase2] ${slug} — sintetizando texto da notícia com Leda (PT-BR)…`);
         fullWav = await synthesizeToWav(fullScript.text);
         await writeAsset(slug, 'full', fullWav);
         console.info(`[fase2] ${slug} — full.wav gravado (${fullWav.length} B)`);

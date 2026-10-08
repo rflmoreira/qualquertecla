@@ -7,7 +7,8 @@
     "check:js": "node scripts/check-js.mjs",
     "sitemap": "node scripts/seo/generate-sitemap.mjs",
     "test": "node scripts/test/smoke.mjs",
-    "test:unit": "node scripts/test/smoke.mjs"
+    "test:unit": "node scripts/test/smoke.mjs",
+    "test:audio-keys": "node scripts/test/article-audio-keys.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^11.1.0"

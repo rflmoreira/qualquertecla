@@ -17,11 +17,21 @@ import {
     pcmToWav,
     sanitizeDetail,
     synthesizeChunk,
-    synthesizeToWav
+    synthesizeToWav,
+    getAudioGenerationConfig
 } from '../article-audio/gemini-tts.mjs';
+import {
+    hashAudioIdentity,
+    hashLegacyAudioIdentity,
+    isLegacyHashCompatible,
+    buildSummaryScript
+} from '../article-audio/script-builder.mjs';
 import {
     findReusableArticleAudio,
     putArticleAudio,
+    isIntactWavBuffer,
+    tryAcquireAudioGenerationLease,
+    releaseAudioGenerationLease,
     LOCAL_DIR
 } from '../article-audio/storage.mjs';
 import {
@@ -182,7 +192,7 @@ async function main() {
         assert.match(outParam, /key=\*\*\*/);
     });
 
-    await test('readKeysFromEnv: _1…_6 prioriza; legado só se vazio', () => {
+    await test('readKeysFromEnv: _1…_6 prioriza; CSV; legado só se vazio', () => {
         const snapshot = {
             GEMINI_API_KEY: process.env.GEMINI_API_KEY,
             GEMINI_API_KEYS: process.env.GEMINI_API_KEYS
@@ -205,6 +215,14 @@ async function main() {
 
             delete process.env.GEMINI_API_KEY_1;
             delete process.env.GEMINI_API_KEY_2;
+            process.env.GEMINI_API_KEYS = `${FAKE_KEYS[2]},${FAKE_KEYS[3]}`;
+            process.env.GEMINI_API_KEY = 'legacy-ignored-when-csv';
+            assert.deepEqual(GeminiKeyManager.readKeysFromEnv(), [
+                FAKE_KEYS[2],
+                FAKE_KEYS[3]
+            ]);
+
+            delete process.env.GEMINI_API_KEYS;
             process.env.GEMINI_API_KEY = FAKE_KEYS[5];
             assert.deepEqual(GeminiKeyManager.readKeysFromEnv(), [FAKE_KEYS[5]]);
         } finally {
@@ -400,6 +418,133 @@ async function main() {
         assert.equal(getKeyManager().size, 1);
         setKeyManagerForTesting(new GeminiKeyManager(FAKE_KEYS));
         assert.equal(getKeyManager().size, 6);
+    });
+
+    // ── P1: ALL_COOLING ≠ QUOTA + recuperação após soft cooldown ─────────
+
+    await test('P1: 6 chaves soft cooldown → espera → recuperação → TTS', async () => {
+        const km = new GeminiKeyManager(FAKE_KEYS);
+        setKeyManagerForTesting(km);
+        for (let i = 1; i <= 6; i += 1) {
+            km.markFailed(i, FailReason.RATE_LIMIT, { cooldownMs: 5 });
+        }
+        assert.equal(km.getStats().active, 0);
+        let calls = 0;
+        await withMockFetch(async () => {
+            calls += 1;
+            return successResponse();
+        }, async () => {
+            const result = await synthesizeChunk('Trecho curto.');
+            assert.ok(result.pcm.length > 0);
+        });
+        assert.equal(calls, 1);
+        assert.ok(km.getStats().active >= 1);
+    });
+
+    await test('P1: ALL_COOLING não é promovido a QUOTA', async () => {
+        const km = new GeminiKeyManager([FAKE_KEYS[0]]);
+        setKeyManagerForTesting(km);
+        // Cooldown >> sleep escalado (QT_TTS_TEST_FAST) → pool segue frio após wait.
+        km.markFailed(1, FailReason.RATE_LIMIT, { cooldownMs: 120_000 });
+        await withMockFetch(async () => successResponse(), async () => {
+            await assert.rejects(
+                () => synthesizeChunk('Trecho.'),
+                (err) => err && err.message === 'ALL_COOLING'
+            );
+        });
+    });
+
+    // ── P1: identidade de áudio (texto + voz + modelo) ───────────────────
+
+    await test('P1: mesmo texto+voz+modelo → mesmo hash (reutilizável)', () => {
+        const cfg = getAudioGenerationConfig();
+        const a = hashAudioIdentity('summary', 'Olá mundo', cfg);
+        const b = hashAudioIdentity('summary', 'Olá mundo', { ...cfg });
+        assert.equal(a, b);
+        const script = buildSummaryScript('Olá mundo', cfg);
+        assert.equal(script.hash, a);
+    });
+
+    await test('P1: mesmo texto + voz diferente → hash distinto', () => {
+        const cfg = getAudioGenerationConfig();
+        const a = hashAudioIdentity('summary', 'Olá mundo', cfg);
+        const b = hashAudioIdentity('summary', 'Olá mundo', {
+            ...cfg,
+            voice: 'Laomedeia'
+        });
+        assert.notEqual(a, b);
+    });
+
+    await test('P1: mesmo texto + modelo diferente → hash distinto', () => {
+        const cfg = getAudioGenerationConfig();
+        const a = hashAudioIdentity('full', 'Olá mundo', cfg);
+        const b = hashAudioIdentity('full', 'Olá mundo', {
+            ...cfg,
+            model: 'gemini-3.1-flash-tts-preview'
+        });
+        assert.notEqual(a, b);
+    });
+
+    await test('P1: texto diferente → hash distinto', () => {
+        const cfg = getAudioGenerationConfig();
+        const a = hashAudioIdentity('summary', 'Texto A', cfg);
+        const b = hashAudioIdentity('summary', 'Texto B', cfg);
+        assert.notEqual(a, b);
+    });
+
+    await test('P1: findReusable por identidade; voz diferente não reutiliza', async () => {
+        const slug = `qa-id-${Date.now()}`;
+        const cfg = getAudioGenerationConfig();
+        const text = 'Parágrafo de teste para identidade.';
+        const hash = hashAudioIdentity('summary', text, cfg);
+        const otherVoice = hashAudioIdentity('summary', text, {
+            ...cfg,
+            voice: 'Laomedeia'
+        });
+        const wav = pcmToWav(makePcm(200));
+        await putArticleAudio(slug, 'summary', { hash, wav });
+        assert.ok(await findReusableArticleAudio(slug, 'summary', hash));
+        assert.equal(await findReusableArticleAudio(slug, 'summary', otherVoice), null);
+        assert.ok(isLegacyHashCompatible(cfg));
+        assert.equal(
+            isLegacyHashCompatible({ ...cfg, voice: 'Laomedeia' }),
+            false
+        );
+        assert.notEqual(hash, hashLegacyAudioIdentity('summary', text));
+        try {
+            await fs.rm(path.join(LOCAL_DIR, slug), { recursive: true, force: true });
+        } catch (_) {
+            /* ignore */
+        }
+    });
+
+    // ── P1: lease de geração (dedupe storage) ────────────────────────────
+
+    await test('P1: lease exclusivo impede segunda aquisição (dedupe storage)', async () => {
+        const slug = `qa-lease-${Date.now()}`;
+        const hash = 'leasehash00000001';
+        const first = await tryAcquireAudioGenerationLease(slug, 'summary', hash);
+        assert.equal(first.acquired, true);
+        const second = await tryAcquireAudioGenerationLease(slug, 'summary', hash);
+        assert.equal(second.acquired, false);
+        await releaseAudioGenerationLease(slug, 'summary', hash);
+        const third = await tryAcquireAudioGenerationLease(slug, 'summary', hash);
+        assert.equal(third.acquired, true);
+        await releaseAudioGenerationLease(slug, 'summary', hash);
+        try {
+            await fs.rm(path.join(LOCAL_DIR, slug), { recursive: true, force: true });
+        } catch (_) {
+            /* ignore */
+        }
+    });
+
+    await test('isIntactWavBuffer exige RIFF/WAVE/data coerente', () => {
+        const good = pcmToWav(makePcm(100));
+        assert.equal(isIntactWavBuffer(good), true);
+        assert.equal(isIntactWavBuffer(Buffer.from('not-a-wav')), false);
+        assert.equal(isIntactWavBuffer(Buffer.from('RIFF....WAVEfmt ')), false);
+        const truncated = good.subarray(0, 20);
+        assert.equal(isIntactWavBuffer(truncated), false);
     });
 
     console.log(`\n${passed} passou(aram), ${failed} falhou(aram).`);

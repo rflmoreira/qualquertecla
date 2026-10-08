@@ -1,23 +1,44 @@
 /**
  * Cliente Gemini TTS (voz Leda) — PCM → WAV.
- * Alinhado ao projeto ~/Leda: modelo gemini-3.1-flash-tts-preview + tom editorial.
+ * Modelo gemini-3.8-flash-tts: text = transcript verbatim; tom em speech_metadata.style;
+ * PCM (L16 preferido) → WAV com crossfade entre chunks; guardrails anti-eco.
  * Chaves gerenciadas pelo key-manager (suporta 1–6 chaves com rotação automática).
  */
 import { splitForTts } from './script-builder.mjs';
 import { getKeyManager, FailReason } from './key-manager.mjs';
 
-const GEMINI_MODEL = 'gemini-3.1-flash-tts-preview';
+const GEMINI_MODEL = 'gemini-3.8-flash-tts';
 const GEMINI_VOICE = 'Leda';
 const DEFAULT_SAMPLE_RATE = 24000;
-/** Mesmo teto de chunk do projeto Leda (~/Leda/server.ts). */
+/** Teto de chunk alinhado ao fluxo TTS editorial. */
 const CHUNK_CHARS = 1400;
-const STYLE_DIRECTIVE =
-    'Say in an engaging, natural, lively, and articulate editorial tone:';
+/**
+ * Tom editorial espontâneo (mesmo espírito do STYLE_DIRECTIVE Leda / df0409b).
+ * Em Gemini 3.8 vai em speech_metadata.style — NÃO no text.
+ */
+const SPEECH_STYLE =
+    'engaging, natural, lively, and articulate editorial tone';
 
 const MAX_NETWORK_ATTEMPTS = 4;
 const MAX_SOFT_429_ATTEMPTS = 3;
 const MAX_UPSTREAM_ATTEMPTS = 3;
 const MAX_WAIT_MS = 180_000;
+/** Crossfade entre chunks (~10ms @ 24kHz) — evita clique/chiado na cola. */
+const CROSSFADE_MS = 10;
+/** Trim máximo de silêncio nas bordas antes do fade (não come fonemas). */
+const EDGE_TRIM_MS = 40;
+const EDGE_SILENCE_THRESHOLD = 180;
+/** Caracteres falados por segundo (estimativa PT-BR) para detectar eco no chunk. */
+const EXPECTED_CHARS_PER_SEC = 14;
+/**
+ * Eco real (~2× o texto) vs fala lenta: fator 2.2 reduz falso positivo
+ * que gerava segunda síntese e consumo extra de créditos.
+ */
+const ECHO_DURATION_FACTOR = 2.2;
+/** Só avalia eco em chunks com texto suficiente. */
+const ECHO_MIN_CHARS = 200;
+/** Overlap mínimo de sufixo/prefixo entre chunks consecutivos para cortar. */
+const CHUNK_OVERLAP_MIN = 40;
 
 export function isGeminiTtsConfigured() {
     return getKeyManager().isConfigured();
@@ -32,11 +53,12 @@ export function pcmToWav(pcm, sampleRate = DEFAULT_SAMPLE_RATE) {
     if (pcm.length >= 12 && pcm.toString('utf8', 0, 4) === 'RIFF') {
         return pcm;
     }
+    const even = ensureEvenPcm(pcm);
     const numChannels = 1;
     const bitsPerSample = 16;
     const blockAlign = (numChannels * bitsPerSample) / 8;
     const byteRate = sampleRate * blockAlign;
-    const dataSize = pcm.length;
+    const dataSize = even.length;
     const buffer = Buffer.alloc(44 + dataSize);
     buffer.write('RIFF', 0);
     buffer.writeUInt32LE(36 + dataSize, 4);
@@ -51,7 +73,7 @@ export function pcmToWav(pcm, sampleRate = DEFAULT_SAMPLE_RATE) {
     buffer.writeUInt16LE(bitsPerSample, 34);
     buffer.write('data', 36);
     buffer.writeUInt32LE(dataSize, 40);
-    pcm.copy(buffer, 44);
+    even.copy(buffer, 44);
     return buffer;
 }
 
@@ -59,6 +81,161 @@ function parseSampleRate(mimeType) {
     const m = /rate=(\d+)/i.exec(String(mimeType || ''));
     const rate = m ? Number(m[1]) : DEFAULT_SAMPLE_RATE;
     return Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_SAMPLE_RATE;
+}
+
+/** Garante comprimento par (samples int16). */
+export function ensureEvenPcm(buf) {
+    const pcm = Buffer.isBuffer(buf) ? buf : Buffer.from(buf || []);
+    if (pcm.length % 2 === 1) {
+        return pcm.subarray(0, pcm.length - 1);
+    }
+    return pcm;
+}
+
+/**
+ * Extrai PCM 16-bit LE + sample rate de WAV (chunk data) ou L16 cru.
+ * @param {Buffer} buf
+ * @param {string} [mimeType]
+ * @returns {{ pcm: Buffer, sampleRate: number }}
+ */
+export function extractPcmFromAudio(buf, mimeType = '') {
+    const mime = String(mimeType || '').toLowerCase();
+    let raw = Buffer.isBuffer(buf) ? buf : Buffer.from(buf || []);
+    if (!raw.length) {
+        return { pcm: Buffer.alloc(0), sampleRate: DEFAULT_SAMPLE_RATE };
+    }
+
+    if (mime.includes('l16') || mime.includes('pcm')) {
+        return {
+            pcm: ensureEvenPcm(raw),
+            sampleRate: parseSampleRate(mimeType) || DEFAULT_SAMPLE_RATE
+        };
+    }
+
+    if (raw.length >= 12 && raw.toString('utf8', 0, 4) === 'RIFF') {
+        return parseWavPcm(raw);
+    }
+
+    return {
+        pcm: ensureEvenPcm(raw),
+        sampleRate: parseSampleRate(mimeType) || DEFAULT_SAMPLE_RATE
+    };
+}
+
+/**
+ * @param {Buffer} wav
+ * @returns {{ pcm: Buffer, sampleRate: number }}
+ */
+function parseWavPcm(wav) {
+    let sampleRate = DEFAULT_SAMPLE_RATE;
+    let dataPcm = null;
+    let offset = 12;
+    while (offset + 8 <= wav.length) {
+        const id = wav.toString('utf8', offset, offset + 4);
+        const size = wav.readUInt32LE(offset + 4);
+        const dataStart = offset + 8;
+        const dataEnd = Math.min(wav.length, dataStart + size);
+        if (id === 'fmt ' && size >= 16 && dataEnd - dataStart >= 16) {
+            const rate = wav.readUInt32LE(dataStart + 4);
+            if (rate > 0) sampleRate = rate;
+        } else if (id === 'data') {
+            dataPcm = wav.subarray(dataStart, dataEnd);
+            break;
+        }
+        offset = dataStart + size + (size % 2);
+    }
+    if (!dataPcm || !dataPcm.length) {
+        // Fallback legado (header PCM simples de 44 bytes).
+        dataPcm = wav.length > 44 ? wav.subarray(44) : Buffer.alloc(0);
+    }
+    return { pcm: ensureEvenPcm(dataPcm), sampleRate };
+}
+
+/**
+ * Remove silêncio extremo só nas bordas (até maxMs), sem comer fala.
+ * @param {Buffer} pcm
+ * @param {number} sampleRate
+ * @param {'leading'|'trailing'|'both'} [edge]
+ */
+export function trimEdgeSilence(pcm, sampleRate, edge = 'both') {
+    const even = ensureEvenPcm(pcm);
+    const maxSamples = Math.max(
+        0,
+        Math.floor((sampleRate * EDGE_TRIM_MS) / 1000)
+    );
+    if (!even.length || maxSamples === 0) return even;
+
+    const total = even.length / 2;
+    let start = 0;
+    let end = total;
+
+    if (edge === 'leading' || edge === 'both') {
+        const limit = Math.min(maxSamples, total);
+        while (start < limit) {
+            if (Math.abs(even.readInt16LE(start * 2)) > EDGE_SILENCE_THRESHOLD) break;
+            start += 1;
+        }
+    }
+    if (edge === 'trailing' || edge === 'both') {
+        const limit = Math.max(start, total - maxSamples);
+        while (end > limit) {
+            if (Math.abs(even.readInt16LE((end - 1) * 2)) > EDGE_SILENCE_THRESHOLD) break;
+            end -= 1;
+        }
+    }
+    if (start >= end) return even;
+    return even.subarray(start * 2, end * 2);
+}
+
+/**
+ * Crossfade linear int16 LE entre dois buffers PCM.
+ * @param {Buffer} left
+ * @param {Buffer} right
+ * @param {number} fadeSamples
+ */
+function crossfadePair(left, right, fadeSamples) {
+    const a = ensureEvenPcm(left);
+    const b = ensureEvenPcm(right);
+    const aSamples = a.length / 2;
+    const bSamples = b.length / 2;
+    const fade = Math.min(fadeSamples, aSamples, bSamples);
+    if (fade <= 0) return Buffer.concat([a, b]);
+
+    const out = Buffer.alloc(a.length + b.length - fade * 2);
+    a.copy(out, 0, 0, a.length - fade * 2);
+    const mixAt = a.length - fade * 2;
+    for (let i = 0; i < fade; i += 1) {
+        const t = (i + 1) / (fade + 1);
+        const sa = a.readInt16LE(a.length - fade * 2 + i * 2);
+        const sb = b.readInt16LE(i * 2);
+        const mixed = Math.round(sa * (1 - t) + sb * t);
+        out.writeInt16LE(Math.max(-32768, Math.min(32767, mixed)), mixAt + i * 2);
+    }
+    b.copy(out, mixAt + fade * 2, fade * 2);
+    return out;
+}
+
+/**
+ * Concatena chunks PCM com crossfade curto (elimina clique/chiado na junção).
+ * @param {Buffer[]} parts
+ * @param {number} sampleRate
+ */
+export function crossfadeConcatPcm(parts, sampleRate = DEFAULT_SAMPLE_RATE) {
+    const list = (parts || []).filter((p) => p && p.length);
+    if (!list.length) return Buffer.alloc(0);
+
+    const fadeSamples = Math.max(
+        1,
+        Math.floor((sampleRate * CROSSFADE_MS) / 1000)
+    );
+
+    let out = trimEdgeSilence(list[0], sampleRate, 'both');
+    for (let i = 1; i < list.length; i += 1) {
+        const left = trimEdgeSilence(out, sampleRate, 'trailing');
+        const right = trimEdgeSilence(list[i], sampleRate, 'leading');
+        out = crossfadePair(left, right, fadeSamples);
+    }
+    return ensureEvenPcm(out);
 }
 
 function scaledWaitMs(ms) {
@@ -150,16 +327,25 @@ async function acquireKey(opts = {}) {
         });
     } catch (err) {
         if (err && err.message === 'ALL_COOLING') {
+            // Espera o cooldown real (ex.: RATE_LIMIT ~90s), limitado a MAX_WAIT_MS.
+            // Não usar teto de 60s — isso transformava soft-429 em falha prematura.
             const wait = Math.min(Number(err.retryAfterMs) || 0, MAX_WAIT_MS);
-            if (wait > 0 && wait <= 60_000) {
+            if (wait > 0) {
                 console.info(
-                    `[tts] pool em cooldown — aguardando ${Math.ceil(wait / 1000)}s`
+                    `[tts] pool em cooldown transitório — aguardando ${Math.ceil(wait / 1000)}s`
                 );
                 await sleep(wait);
-                return km.getNextKey({
-                    excludeIndex:
-                        opts.excludeIndex != null ? Number(opts.excludeIndex) : undefined
-                });
+                try {
+                    return km.getNextKey({
+                        excludeIndex:
+                            opts.excludeIndex != null
+                                ? Number(opts.excludeIndex)
+                                : undefined
+                    });
+                } catch (err2) {
+                    // Mantém ALL_COOLING (não promove a QUOTA).
+                    throw err2;
+                }
             }
         }
         throw err;
@@ -193,19 +379,10 @@ async function synthesizeChunk(text, state = {}) {
         throw new Error('QUOTA');
     }
 
-    let key;
-    let keyIndex;
-    try {
-        ({ key, index: keyIndex } = await acquireKey({ stickyIndex }));
-    } catch (err) {
-        const code = String(err && err.message ? err.message : '');
-        if (code === 'ALL_COOLING' || code === 'QUOTA') {
-            throw new Error('QUOTA');
-        }
-        throw err;
-    }
+    // acquireKey preserva ALL_COOLING ≠ QUOTA (rate-limit transitório vs cota).
+    const { key, index: keyIndex } = await acquireKey({ stickyIndex });
 
-    const prompt = `${STYLE_DIRECTIVE} ${String(text || '').trim()}`;
+    const transcript = String(text || '').trim();
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`;
     let res;
     try {
@@ -213,18 +390,33 @@ async function synthesizeChunk(text, state = {}) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // Mesmo User-Agent do projeto Leda (AI Studio build).
                 'User-Agent': 'aistudio-build'
             },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [
+                            {
+                                text: transcript,
+                                speech_metadata: {
+                                    style: SPEECH_STYLE
+                                }
+                            }
+                        ]
+                    }
+                ],
                 generationConfig: {
                     responseModalities: ['AUDIO'],
+                    responseFormat: {
+                        audio: {
+                            mimeType: 'AUDIO_L16',
+                            sampleRate: DEFAULT_SAMPLE_RATE
+                        }
+                    },
                     speechConfig: {
                         voiceConfig: {
-                            prebuiltVoiceConfig: {
-                                voiceName: GEMINI_VOICE
-                            }
+                            voice: GEMINI_VOICE
                         }
                     }
                 }
@@ -420,25 +612,97 @@ async function synthesizeChunk(text, state = {}) {
         throw new Error('EMPTY_AUDIO');
     }
 
-    let pcm = Buffer.from(String(inline.data), 'base64');
-    if (!pcm.length) {
+    const raw = Buffer.from(String(inline.data), 'base64');
+    if (!raw.length) {
         throw new Error('EMPTY_AUDIO');
     }
-    // Se vier WAV, remove header RIFF (igual ao Leda).
-    if (pcm.length >= 44 && pcm.toString('utf8', 0, 4) === 'RIFF') {
-        pcm = pcm.subarray(44);
+
+    const extracted = extractPcmFromAudio(raw, inline.mimeType);
+    if (!extracted.pcm.length) {
+        throw new Error('EMPTY_AUDIO');
     }
 
     km.markSuccess(keyIndex);
 
     return {
-        pcm,
-        sampleRate: parseSampleRate(inline.mimeType)
+        pcm: extracted.pcm,
+        sampleRate: extracted.sampleRate || parseSampleRate(inline.mimeType)
     };
 }
 
 /**
+ * Remove chunks idênticos consecutivos e corta prefixo sobreposto com o anterior.
+ * @param {string[]} rawChunks
+ * @returns {string[]}
+ */
+export function dedupeTtsChunks(rawChunks) {
+    const out = [];
+    for (const raw of rawChunks || []) {
+        let chunk = String(raw || '').trim();
+        if (!chunk) continue;
+        if (out.length) {
+            const prev = out[out.length - 1];
+            if (chunk === prev) continue;
+            const max = Math.min(prev.length, chunk.length);
+            let overlap = 0;
+            for (let n = max; n >= CHUNK_OVERLAP_MIN; n -= 1) {
+                if (prev.slice(-n) === chunk.slice(0, n)) {
+                    overlap = n;
+                    break;
+                }
+            }
+            if (overlap > 0) {
+                chunk = chunk.slice(overlap).trim();
+                if (!chunk) continue;
+            }
+        }
+        out.push(chunk);
+    }
+    return out;
+}
+
+function pcmDurationSec(pcm, sampleRate) {
+    const even = ensureEvenPcm(pcm);
+    const rate = sampleRate > 0 ? sampleRate : DEFAULT_SAMPLE_RATE;
+    return even.length / 2 / rate;
+}
+
+function expectedDurationSec(text) {
+    const chars = String(text || '').trim().length;
+    return chars / EXPECTED_CHARS_PER_SEC;
+}
+
+/**
+ * Sintetiza um chunk; se o PCM parecer eco (duração >> texto), re-sintetiza 1×
+ * e fica com o mais curto.
+ * @param {string} chunkText
+ * @param {number} index1Based
+ */
+async function synthesizeChunkWithoutEcho(chunkText, index1Based) {
+    let result = await synthesizeChunk(chunkText);
+    const expected = expectedDurationSec(chunkText);
+    const actual = pcmDurationSec(result.pcm, result.sampleRate);
+    if (
+        String(chunkText).trim().length >= ECHO_MIN_CHARS &&
+        expected > 0 &&
+        actual > expected * ECHO_DURATION_FACTOR
+    ) {
+        console.info(
+            `[tts] chunk ${index1Based} suspeito de eco — regenerando ` +
+                `(${actual.toFixed(1)}s vs ~${expected.toFixed(1)}s esperado)`
+        );
+        const retry = await synthesizeChunk(chunkText);
+        const retryDur = pcmDurationSec(retry.pcm, retry.sampleRate);
+        if (retryDur <= actual) {
+            result = retry;
+        }
+    }
+    return result;
+}
+
+/**
  * Sintetiza texto completo (com chunking) e devolve Buffer WAV.
+ * Junções usam crossfade curto; chunks deduplicados; eco anomalamente longo é refeito.
  * @param {string} text
  * @returns {Promise<Buffer>}
  */
@@ -448,25 +712,50 @@ export async function synthesizeToWav(text) {
         throw new Error('EMPTY_TEXT');
     }
 
-    const chunks = splitForTts(cleaned, CHUNK_CHARS);
+    const chunks = dedupeTtsChunks(splitForTts(cleaned, CHUNK_CHARS));
     if (!chunks.length) {
         throw new Error('EMPTY_TEXT');
+    }
+
+    for (let i = 0; i < chunks.length; i += 1) {
+        const preview = chunks[i].slice(0, 80).replace(/\s+/g, ' ');
+        console.info(`[tts] chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars): ${preview}`);
     }
 
     const pcmParts = [];
     let sampleRate = DEFAULT_SAMPLE_RATE;
 
     for (let i = 0; i < chunks.length; i += 1) {
-        const result = await synthesizeChunk(chunks[i]);
+        const result = await synthesizeChunkWithoutEcho(chunks[i], i + 1);
+        const rate = result.sampleRate || DEFAULT_SAMPLE_RATE;
+        if (i === 0) {
+            sampleRate = rate;
+        } else if (rate !== sampleRate) {
+            throw new Error(
+                `SAMPLE_RATE_MISMATCH: chunk ${i + 1} tem ${rate} Hz, esperado ${sampleRate} Hz`
+            );
+        }
         pcmParts.push(result.pcm);
-        sampleRate = result.sampleRate || sampleRate;
         if (i < chunks.length - 1) {
             await sleep(500);
         }
     }
 
-    const pcm = Buffer.concat(pcmParts);
+    const pcm = crossfadeConcatPcm(pcmParts, sampleRate);
     return pcmToWav(pcm, sampleRate);
 }
 
-export { GEMINI_MODEL, GEMINI_VOICE, sanitizeDetail, synthesizeChunk };
+/**
+ * Configuração que determina materialmente o áudio gerado (entra no hash de identidade).
+ * @returns {{ voice: string, model: string, style: string, sampleRate: number }}
+ */
+export function getAudioGenerationConfig() {
+    return {
+        voice: GEMINI_VOICE,
+        model: GEMINI_MODEL,
+        style: SPEECH_STYLE,
+        sampleRate: DEFAULT_SAMPLE_RATE
+    };
+}
+
+export { GEMINI_MODEL, GEMINI_VOICE, SPEECH_STYLE, sanitizeDetail, synthesizeChunk };

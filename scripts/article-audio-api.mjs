@@ -6,16 +6,25 @@ import { requireAdminAuth } from './admin-auth.mjs';
 import {
     buildFullScript,
     buildSummaryScript,
-    hashScript,
+    hashAudioIdentity,
+    hashLegacyAudioIdentity,
+    isLegacyHashCompatible,
     stripToPlainText
 } from './article-audio/script-builder.mjs';
-import { isGeminiTtsConfigured, synthesizeToWav } from './article-audio/gemini-tts.mjs';
+import {
+    getAudioGenerationConfig,
+    isGeminiTtsConfigured,
+    synthesizeToWav
+} from './article-audio/gemini-tts.mjs';
 import {
     findReusableArticleAudio,
     getArticleAudioWav,
     publicAudioUrl,
     putArticleAudio,
-    safeSlug
+    releaseAudioGenerationLease,
+    safeSlug,
+    tryAcquireAudioGenerationLease,
+    waitForReusableArticleAudio
 } from './article-audio/storage.mjs';
 
 const MAX_BODY_BYTES = 200_000;
@@ -186,18 +195,27 @@ async function handleGenerate(url, opts) {
         return jsonBody({ error: 'slug e kind (summary|full) são obrigatórios.' }, 400);
     }
 
+    const audioConfig = getAudioGenerationConfig();
+
     let script;
     if (kind === 'summary') {
-        script = buildSummaryScript(data.text || data.summary || '');
+        script = buildSummaryScript(data.text || data.summary || '', audioConfig);
     } else if (data.text) {
         const text = stripToPlainText(data.text);
-        script = { text, hash: hashScript(`full|${text}`) };
+        script = {
+            text,
+            hash: hashAudioIdentity('full', text, audioConfig),
+            legacyHash: hashLegacyAudioIdentity('full', text)
+        };
     } else {
-        script = buildFullScript({
-            title: data.title,
-            subtitle: data.subtitle,
-            content: data.content
-        });
+        script = buildFullScript(
+            {
+                title: data.title,
+                subtitle: data.subtitle,
+                content: data.content
+            },
+            audioConfig
+        );
     }
 
     if (!script.text || script.text.length < 8) {
@@ -205,50 +223,104 @@ async function handleGenerate(url, opts) {
     }
 
     return withArticleAudioSlugLock(slug, async () => {
-        try {
-            // Idempotência: mesmo hash + WAV íntegro → não chama Gemini.
-            const reusable = await findReusableArticleAudio(slug, kind, script.hash);
-            if (reusable) {
-                const audioUrl = publicAudioUrl(slug, kind, reusable.meta.hash);
-                console.info(
-                    `[article-audio] reuse slug=${safeSlug(slug)} kind=${kind} hash=${String(script.hash).slice(0, 12)}`
-                );
-                return jsonBody({
-                    ok: true,
-                    reused: true,
-                    kind,
-                    slug: reusable.meta.slug || safeSlug(slug),
-                    hash: reusable.meta.hash,
-                    url: audioUrl,
-                    generated_at: reusable.meta.generatedAt || null,
-                    bytes: reusable.meta.bytes || reusable.wav.length
-                });
-            }
-
-            const wav = await synthesizeToWav(script.text);
-            const meta = await putArticleAudio(slug, kind, {
-                hash: script.hash,
-                wav,
-                generatedAt: new Date().toISOString()
-            });
-            const audioUrl = publicAudioUrl(slug, kind, meta.hash);
+        const respondReuse = (reusable, reason) => {
+            const audioUrl = publicAudioUrl(slug, kind, reusable.meta.hash);
+            console.info(
+                `[article-audio] reuse (${reason}) slug=${safeSlug(slug)} kind=${kind} hash=${String(reusable.meta.hash).slice(0, 12)}`
+            );
             return jsonBody({
                 ok: true,
-                reused: false,
+                reused: true,
                 kind,
-                slug: meta.slug,
-                hash: meta.hash,
+                slug: reusable.meta.slug || safeSlug(slug),
+                hash: reusable.meta.hash,
                 url: audioUrl,
-                generated_at: meta.generatedAt,
-                bytes: meta.bytes
+                generated_at: reusable.meta.generatedAt || null,
+                bytes: reusable.meta.bytes || reusable.wav.length
             });
+        };
+
+        try {
+            // 1) Identidade v2 (texto + voz + modelo + …)
+            let reusable = await findReusableArticleAudio(slug, kind, script.hash);
+            if (reusable) return respondReuse(reusable, 'identity');
+
+            // 2) Legado só-texto — apenas se config atual = default que gerou o acervo
+            if (
+                script.legacyHash &&
+                script.legacyHash !== script.hash &&
+                isLegacyHashCompatible(audioConfig)
+            ) {
+                reusable = await findReusableArticleAudio(slug, kind, script.legacyHash);
+                if (reusable) return respondReuse(reusable, 'legacy');
+            }
+
+            // 3) Lease cross-isolate (Blobs onlyIfNew / local wx)
+            const lease = await tryAcquireAudioGenerationLease(slug, kind, script.hash);
+            if (!lease.acquired) {
+                const waited = await waitForReusableArticleAudio(slug, kind, script.hash);
+                if (waited) return respondReuse(waited, 'lease-wait');
+                if (
+                    script.legacyHash &&
+                    isLegacyHashCompatible(audioConfig)
+                ) {
+                    const legacyWait = await findReusableArticleAudio(
+                        slug,
+                        kind,
+                        script.legacyHash
+                    );
+                    if (legacyWait) return respondReuse(legacyWait, 'lease-wait-legacy');
+                }
+                return jsonBody(
+                    {
+                        error:
+                            'Geração de áudio já em andamento para esta matéria. Tente novamente em instantes.'
+                    },
+                    409
+                );
+            }
+
+            try {
+                // Outro isolate pode ter gravado entre o miss e o lease.
+                reusable = await findReusableArticleAudio(slug, kind, script.hash);
+                if (reusable) return respondReuse(reusable, 'identity-after-lease');
+
+                const wav = await synthesizeToWav(script.text);
+                const meta = await putArticleAudio(slug, kind, {
+                    hash: script.hash,
+                    wav,
+                    generatedAt: new Date().toISOString()
+                });
+                const audioUrl = publicAudioUrl(slug, kind, meta.hash);
+                return jsonBody({
+                    ok: true,
+                    reused: false,
+                    kind,
+                    slug: meta.slug,
+                    hash: meta.hash,
+                    url: audioUrl,
+                    generated_at: meta.generatedAt,
+                    bytes: meta.bytes
+                });
+            } finally {
+                await releaseAudioGenerationLease(slug, kind, script.hash);
+            }
         } catch (err) {
             const code = String(err && err.message ? err.message : '');
             if (code === 'MISSING_KEY') {
                 return jsonBody({ error: 'Áudio da Mary AI temporariamente indisponível.' }, 503);
             }
-            if (code === 'QUOTA' || code === 'ALL_COOLING') {
+            if (code === 'QUOTA') {
                 return jsonBody({ error: 'Cota de áudio esgotada. Tente mais tarde.' }, 429);
+            }
+            if (code === 'ALL_COOLING') {
+                return jsonBody(
+                    {
+                        error:
+                            'Áudio temporariamente sobrecarregado (rate limit). Tente novamente em instantes.'
+                    },
+                    429
+                );
             }
             if (code === 'EMPTY_TEXT' || code === 'EMPTY_AUDIO') {
                 return jsonBody({ error: 'Não foi possível sintetizar este texto.' }, 502);

@@ -477,7 +477,7 @@
             audio_full_url: 'assets/audio/articles/pantheon-serie-netflix-consciencia-digital-ia/full.wav',
             audio_summary_hash: '3f61fdc02ee4c68df843d73fe6600ac51de310fc76b2f86c6cd939bf3e48ce3e',
             audio_full_hash: 'b31923a7af9c054db85573371a832018a4cda9f50b48e9404ff734fa83dcb0cc',
-            audio_generated_at: '2026-10-01T11:06:31.389Z',
+            audio_generated_at: '2026-10-08T11:30:35.870Z',
             audio_status: 'ready',
             views: 420,
             tags: [

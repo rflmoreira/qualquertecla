@@ -450,7 +450,7 @@ server.listen(PORT, '127.0.0.1', () => {
         );
     }
     if (isGeminiTtsConfigured()) {
-        console.info('[serve] Gemini ativo — áudio Leda na publicação disponível');
+        console.info('[serve] Gemini ativo — áudio Leda / gemini-3.8-flash-tts (PT-BR) na publicação disponível');
     } else {
         console.info(
             '[serve] Gemini: defina GEMINI_API_KEY (ou GEMINI_API_KEY_1…6) no .env (https://aistudio.google.com/apikey)'
