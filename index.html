@@ -66,12 +66,16 @@
     <link rel="stylesheet" href="assets/vendor/phosphor/fill/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Massive brand (.massive-brand-wrapper): Genos 700 latin — wordmark texture / static -->
+    <!-- Noticia Text latin (corpo/manchete) + Genos latin — preload evita FOUT/swap no texto -->
     <link rel="preload" as="font" type="font/woff2" crossorigin
-          href="https://fonts.gstatic.com/s/genos/v17/SlGNmQqPqpUOYTYjacb0Hc91fTwVTU_Yqki7CbN8A797.woff2">
-    <link href="https://fonts.googleapis.com/css2?family=Noticia+Text:ital,wght@0,400;0,700;1,400;1,700&family=Bricolage+Grotesque:wght@700;800&family=Genos:wght@700;800&display=swap" rel="stylesheet">
+          href="https://fonts.gstatic.com/s/noticiatext/v16/VuJ2dNDF2Yv9qppOePKYRP12ZjtYlUndpA.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="https://fonts.gstatic.com/s/noticiatext/v16/VuJpdNDF2Yv9qppOePKYRP1-3R5NuGvQjjLkeQ.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="https://fonts.gstatic.com/s/genos/v17/SlGemQqPqpUOYRwvQTcOgnxy.woff2">
+    <link href="https://fonts.googleapis.com/css2?family=Noticia+Text:ital,wght@0,400;0,700;1,400;1,700&family=Bricolage+Grotesque:wght@700;800&family=Genos:wght@700;800&display=optional" rel="stylesheet">
 
-    <link rel="stylesheet" href="assets/css/style.css?v=20261007panelCreditsBlur1">
+    <link rel="stylesheet" href="assets/css/style.css?v=20261008fontFout1">
     <link rel="stylesheet" href="assets/vendor/simple-scrollbar/simple-scrollbar.css">
     <link rel="stylesheet" href="assets/css/public-skeleton.css?v=20260929">
 </head>
